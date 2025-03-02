@@ -53,3 +53,5 @@ SatConstellationVisual/notebooks/OUTPUT/*
 /testenv/
 
 .vscode/
+
+coverage/
