@@ -9,40 +9,32 @@ get_lon(p::LatLon) = p.lon
 
 ## boders()
 # Define borders for PolyBorder
-borders(::Type{LatLon}, pb::PolyBorder) = pb.latlon
-borders(::Type{Cartesian}, pb::PolyBorder) = pb.cart
-borders(pb::PolyBorder) = borders(LatLon, pb)
+CountriesBorders.borders(::Type{LatLon}, pb::PolyBorder) = pb.latlon
+CountriesBorders.borders(::Type{Cartesian}, pb::PolyBorder) = pb.cart
 
 # Define borders for MultiBorder
-borders(::Type{LatLon}, mb::MultiBorder) = mb.latlon
-borders(::Type{Cartesian}, mb::MultiBorder) = mb.cart
-borders(mb::MultiBorder) = borders(LatLon, mb)
+CountriesBorders.borders(::Type{LatLon}, mb::MultiBorder) = mb.latlon
+CountriesBorders.borders(::Type{Cartesian}, mb::MultiBorder) = mb.cart
 
 # Define borders for PolyRegion
-function borders(::Type{T}, pr::PolyRegion) where {T}
+function CountriesBorders.borders(::Type{T}, pr::PolyRegion) where {T}
     borders(T, pr.domain)
 end
-borders(pr::PolyRegion) = borders(LatLon, pr)
 
 # Define borders for PolyRegionOffset
-function borders(::Type{T}, pr::PolyRegionOffset) where {T}
+function CountriesBorders.borders(::Type{T}, pr::PolyRegionOffset) where {T}
     borders(T, pr.domain)
 end
-borders(pr::PolyRegionOffset) = borders(LatLon, pr)
 
 # Define borders for GeoRegion
-function borders(::Type{T}, gr::GeoRegion) where {T}
-    map(x -> CountriesBorders.borders(T, x), gr.domain)
+function CountriesBorders.borders(::Type{T}, gr::GeoRegion) where {T}
+    map(Base.Fix1(borders, T), gr.domain)
 end
-borders(gr::GeoRegion) = map(x -> CountriesBorders.borders(LatLon, x), gr.domain)
 
 # Define borders for GeoRegionOffset
-function borders(::Type{T}, gr::GeoRegionOffset) where {T}
-    # map(x -> CountriesBorders.borders(T, x), gr.domain)
+function CountriesBorders.borders(::Type{T}, gr::GeoRegionOffset) where {T}
     borders(T, gr.domain)
 end
-# borders(gr::GeoRegionOffset) = map(x -> CountriesBorders.borders(LatLon, x), gr.domain)
-borders(gr::GeoRegionOffset) = borders(LatLon, gr)
 
 ## Base.in()
 # //NOTE: Interface choice: no possbility to call Base.in on GeoRegion, PolyRegion, or LatBeltRegion with a Cartesian2D point. This is a safe choice of interface of users.
