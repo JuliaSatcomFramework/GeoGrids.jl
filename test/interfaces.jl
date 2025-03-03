@@ -52,19 +52,32 @@ end
 
 ## borders()
 @testitem "Test borders for GeoRegion" tags = [:interface] begin
+    using GeoGrids: MULTI_LATLON, MULTI_CART
     reg = GeoRegion(name="ITA", admin="Italy;Spain")
 
     @test borders(reg) == map(x -> x.latlon, reg.domain)
     @test borders(LatLon, reg) == map(x -> x.latlon, reg.domain)
     @test borders(Cartesian, reg) == map(x -> x.cart, reg.domain)
+
+    # Georegion Offset
+    gro = GeoRegionOffset(reg, 50e3)
+    @test borders(gro) isa MULTI_LATLON
+    @test borders(Cartesian, gro) isa MULTI_CART
 end
 
 @testitem "Test borders for PolyRegion" tags = [:interface] begin
+    using GeoGrids: MULTI_LATLON, MULTI_CART
+
     poly = PolyRegion("POLY", [LatLon(10°, -5°), LatLon(10°, 15°), LatLon(27°, 15°), LatLon(27°, -5°)])
 
     @test borders(poly) == poly.domain.latlon
     @test borders(LatLon, poly) == poly.domain.latlon
     @test borders(Cartesian, poly) == poly.domain.cart
+
+    # This tests both the PolyRegionOffset borders and the one for MultiBorder
+    polyoffset = PolyRegionOffset(poly, 50e3)
+    @test borders(polyoffset) isa MULTI_LATLON
+    @test borders(Cartesian, polyoffset) isa MULTI_CART
 end
 
 ## centroid()
