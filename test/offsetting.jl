@@ -41,3 +41,25 @@ end
     @test new_poly.name == "New Poly"
     @test new_poly.domain isa MultiBorder
 end
+
+@testitem "antimeridian" begin
+    using GeoGrids.Meshes
+
+    russia = GeoRegion(; admin = "russia")
+    russia_offset = GeoRegionOffset(russia, 100e3)
+    # We test a point that should be in the offset only
+    @test LatLon(70, 179) ∈ russia_offset
+    @test LatLon(70, 179) ∉ russia
+    # Before the fix, offsetting russia would create a broken polygon due to antimeridian crossing that would create a lot of false positives for inclusion
+    @test LatLon(67, 0) ∉ russia_offset
+
+    # We test the original application to a Poly, as per first example of the python library in https://www.gadom.ski/antimeridian/latest/the-algorithm/
+    poly = map([(140, -20), (220, -20), (220, 20), (140, 20)]) do tp
+        Point(LatLon(tp[2], tp[1]))
+    end |> PolyArea
+    split_poly = GeoGrids.split_antimeridian(poly)
+    rs = rings(split_poly)
+    @test length(rs) == 2
+    @test all(p -> get_lon(p) > 0, vertices(rs[1]))
+    @test all(p -> get_lon(p) < 0, vertices(rs[2]))
+end
