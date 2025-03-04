@@ -71,3 +71,12 @@ end
     # Test with custom title and layout options
     @test plot_geo_poly(poly; title="Custom Polygon Plot", kwargs_layout=(width=800, height=600)) isa Plot
 end
+
+@testitem "scattergeo" tags = [:plotting] begin
+    using PlotlyBase
+
+    offset_region = GeoRegionOffset(; admin = "Spain", delta = 100e3)
+
+    # This is just a coverage test and sanity check to spot errors. It is not really testing functionality
+    @test scattergeo(offset_region) == scattergeo(offset_region.domain)
+end

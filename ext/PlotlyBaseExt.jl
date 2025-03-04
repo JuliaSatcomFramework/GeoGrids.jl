@@ -6,6 +6,7 @@ using Unitful: ustrip
 using Meshes: vertices, rings, Multi, Ngon, 🌐, WGS84Latest
 
 using GeoGrids
+using GeoGrids: extract_plot_coords, MultiBorder, PolyBorder, AbstractRegion
 
 const DEFAULT_CELL_CONTOUR = (;
     mode="lines",
@@ -411,5 +412,8 @@ function GeoGrids.plot_unitarysphere(points_cart; kwargs_scatter=(;), kwargs_lay
     # Plot([sphere,markers],layout)
     plotly_plot([sphere, markers], layout)
 end
+
+PlotlyBase.scattergeo(b::Union{<:PolyBorder, <:MultiBorder}; kwargs...) = scattergeo(; extract_plot_coords(b)..., mode = "lines")
+PlotlyBase.scattergeo(b::AbstractRegion; kwargs...) = scattergeo(; extract_plot_coords(b)..., mode = "lines")
 
 end # module PlotlyBaseExt

@@ -96,3 +96,8 @@ Meshes.centroid(d::PolyRegionOffset) = centroid(Cartesian, d.domain)
 
 ## CountriesBorders.extract_countries()
 CountriesBorders.extract_countries(r::GeoRegion) = r.domain
+
+## extract_plot_coords
+CountriesBorders.extract_plot_coords(b::Union{PolyBorder, MultiBorder}) = extract_plot_coords(borders(LatLon, b))
+
+CountriesBorders.extract_plot_coords(r::AbstractRegion) = extract_plot_coords(r.domain)

@@ -67,7 +67,7 @@ function offset_region(originalRegion::PolyRegion, deltaDist; refRadius=constant
 
     allGeoms = if numRings == 1
         outerRing = _offset_ring(vecRings[1], intDelta; magnitude, precision)
-        [PolyArea(outerRing)]
+        map(PolyArea, outerRing)
     else
         # Create outer ring.
         outerRing = _offset_ring(vecRings[1], intDelta; magnitude, precision)
@@ -124,10 +124,82 @@ function _offset_ring(ring::RING_LATLON{T}, delta; magnitude=3, precision=7) whe
     outRings = map(eachindex(offset_polygons)) do i
         map(offset_polygons[i]) do vertex
             lonlat = tofloat(vertex, magnitude, precision)
-            LatLon{WGS84Latest}(lonlat[2] |> T, lonlat[1] |> T) |> Point # Use consistent type precision for the coordinates.
+            # We force latitude to be in the range [-90°, 90°]
+            lat = min(max(lonlat[2] |> T, -90), 90)
+            lon = lonlat[1] |> T
+            LatLon{WGS84Latest}(lat, lon) |> Point # Use consistent type precision for the coordinates.
         end |> Ring
     end
 
+    # We now eventually split the rings if they contain antimeridian crossings
+    split_antimeridian!(outRings)
+
     # Return a vector of Ring.
     return outRings
+end
+
+# Check if a ring contains a crossing of the antimeridian (180° longitude)
+function has_antimeridian(ring)
+    any(segments(ring)) do segment
+        p1, p2 = extrema(segment)
+        abs(get_lon(p1) - get_lon(p2)) > 180°
+    end
+end
+
+function split_antimeridian(poly::Union{PolyArea, Multi})
+	rs = rings(poly)
+    split_antimeridian!(rs)
+	return Multi(map(PolyArea, rs))
+end
+
+function split_antimeridian!(rs::Vector{<:Ring})
+	for i in reverse(eachindex(rs))
+		r = rs[i]
+		has_antimeridian(r) || continue
+		new_rings = split_antimeridian(r)
+		splice!(rs, i, new_rings)
+	end
+end
+
+# Split a ring crossing the antimeridian into multiple rings. Code is based on the implementation in the python library at https://github.com/gadomski/antimeridian, though it's simplified to only work on a subset of cases for the moment
+function split_antimeridian(ring::Ring)
+    ptype = eltype(vertices(ring))
+    segs = Vector{ptype}[]
+    seg = ptype[]
+    δlon(p1, p2) = get_lon(p2) - get_lon(p1)
+    for s in segments(ring)
+        p1, p2 = extrema(s)
+        push!(seg, p1)
+        Δlon = δlon(p1, p2)
+        if 180° < Δlon < 360° # Left
+            lat = crossing_latitude_flat(p1, p2)
+            push!(seg, ptype(LatLon(lat, -180°)))
+            push!(segs, seg)
+            seg = [ptype(LatLon(lat, 180°))]
+        elseif -360° < Δlon < -180° # Right
+            lat = crossing_latitude_flat(p2, p1)
+            push!(seg, ptype(LatLon(lat, 180°)))
+            push!(segs, seg)
+            seg = [ptype(LatLon(lat, -180°))]
+        end
+    end
+    # This is slightly different from the python library implementation, but I am not sure what is the python library doing there
+	prepend!(first(segs), seg)
+    # We always force rings to be CCW
+    return map(segs) do seg
+		r = Ring(seg)
+		Meshes.orientation(r) == CCW ? r : reverse(r)
+	end
+end
+
+# We only assume flat computation for the lat crossing instead of also geodetic as in the python library
+function crossing_latitude_flat(p1, p2)
+    Δlat = get_lat(p2) - get_lat(p1)
+    coeff = 180° - get_lon(p1)
+    den = get_lon(p2) + 360° - get_lon(p1)
+    if get_lon(p1) <= 0°
+        coeff = 180° + get_lon(p1)
+        den = get_lon(p1) + 360° - get_lon(p2)
+    end
+    return get_lat(p1) + coeff * Δlat / den
 end
