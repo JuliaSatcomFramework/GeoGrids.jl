@@ -4,7 +4,7 @@
     using GeoGrids.Distances
     using GeoGrids.CoordRefSystems
     using GeoGrids.Meshes
-    using NearestNeighbors
+    using GeoGrids.NearestNeighbors
 
     @test GreatCircleMetric() isa Metric
 
