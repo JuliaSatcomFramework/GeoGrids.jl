@@ -33,7 +33,7 @@ All these methods allow specifing the query points as one of the following:
 
 The `inrangecount`, `inrange` and `inrange!` methods are only callable with instances of `LatLonTree{<:BallTree}` as the distance with `KDTree` is not really meaningful.
 """
-struct LatLonTree{T, P <: POINT_LATLON}
+struct LatLonTree{T, P <: VALID_COORD}
     tree::T
     points::Vector{P}
 end
@@ -54,13 +54,11 @@ for f in (:authalic_radius,)
     @eval $f(L::Type{<:LatLon}) = $f(CoordRefSystems.datum(L))
     @eval $f(P::Type{<:Point{🌐, <:LatLon}}) = $f(Meshes.crs(P))
     @eval $f(p::VALID_COORD) = $f(typeof(p))
-    @eval $f(v::Vector{<:VALID_COORD}) = $f(eltype(v))
 end
 
 mactype(x) = CoordRefSystems.mactype(x)
 mactype(P::Type{<:Point{🌐, <:LatLon}}) = mactype(P |> crs)
 mactype(p::VALID_COORD) = mactype(typeof(p))
-mactype(v::Vector{<:VALID_COORD}) = mactype(eltype(v))
 
 # Create a SVector with lon and lat as first and second elements translated in radians
 function raw_svector(p::LatLon)
@@ -101,3 +99,5 @@ end
 
 Distances.result_type(::GreatCircleMetric{T1}, ::Type{T2}, ::Type{T3}) where {T1<:Number,T2<:Number,T3<:Number} =
     float(promote_type(T1, T2, T3))
+
+great_circle_distance(p1::VALID_COORD, p2::VALID_COORD, r = authalic_radius(p1)) = GreatCircleMetric(r)(p1, p2)
