@@ -34,6 +34,8 @@ export AbstractRegion, GlobalRegion, GeoRegion, PolyRegion, LatBeltRegion,
     AbstractTiling, ICO, HEX, H3,
     EO
     # UnitfulAngleType, UnitfulAngleQuantity, ValidAngle,
+
+export LatLonTree, GreatCircleMetric, great_circle_distance
     
 export icogrid, rectgrid, vecgrid,
     extract_countries, SKIP_NONCONTINENTAL_EU, filter_points, group_by_domain,
