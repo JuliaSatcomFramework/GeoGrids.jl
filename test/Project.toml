@@ -2,7 +2,6 @@
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
 JET = "c3a54625-cd67-489e-a8e7-0a5a0ff4e31b"
 Meshes = "eacbb407-ea5a-433e-ab97-5258b1ca43fa"
-NearestNeighbors = "b8a86587-4115-5ab1-83bc-aa920d37bbce"
 PlotlyBase = "a03496cd-edff-5a9b-9e67-9cda94a718b5"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 TestItemRunner = "f8b46487-2199-4994-9208-9a1283c18c0a"

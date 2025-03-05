@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Moved back the functionality from the `NearestNeighborsExt.jl` to GeoGrids directly as NearestNeighbors.jl was anyhow an indirect dependency coming from Meshes.jl.
+
 ## [0.5.6] - 2025-03-05
 
 ### Added

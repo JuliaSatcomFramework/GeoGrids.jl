@@ -12,6 +12,8 @@ using Distances: Distances, Metric, result_type
 using LinearAlgebra
 using Meshes
 using Meshes: 🌐, WGS84Latest, coords
+using NearestNeighbors
+using NearestNeighbors: always_false, check_k, knn_point!, inrange_point!, check_radius
 using PlotlyExtensionsHelper
 using StaticArrays
 using Unitful: °, rad, Quantity, Length, @u_str, ustrip
