@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.6] - 2025-03-05
+
 ### Added
 - Added a functionality to deal with polygons crossing the antimeridian (180° longitude), especially in the context of ofsetting regions. The implementation is based on the implementation in the python library at https://github.com/gadomski/antimeridian, though it's simplified to only work on a subset of cases for the moment.
 - Added methods for `PlotlyBase.scattergeo` and `CountriesBorders.extract_plot_coords` to work with `MultiBorder`, `PolyBorder` and `AbstractRegion`
