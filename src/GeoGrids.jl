@@ -3,11 +3,12 @@ module GeoGrids
 using AngleBetweenVectors
 using Clipper
 using CoordRefSystems
-using CoordRefSystems: Deg
+using CoordRefSystems: Deg, RevolutionEllipsoid
 using CountriesBorders
 using CountriesBorders: borders, cartesian_geometry, latlon_geometry, change_geometry, extract_plot_coords
-using CountriesBorders.GeoTablesConversion: LATLON, CART, POLY_LATLON, POLY_CART, MULTI_LATLON, MULTI_CART, RING_LATLON, RING_CART
+using CountriesBorders.GeoTablesConversion: LATLON, CART, POLY_LATLON, POLY_CART, MULTI_LATLON, MULTI_CART, RING_LATLON, RING_CART, POINT_LATLON
 using Dictionaries
+using Distances: Distances, Metric, result_type
 using LinearAlgebra
 using Meshes
 using Meshes: 🌐, WGS84Latest, coords
@@ -16,6 +17,7 @@ using StaticArrays
 using Unitful: °, rad, Quantity, Length, @u_str, ustrip
 
 include("basic_types.jl")
+include("distances.jl")
 include("offset_types.jl")
 include("interface_func.jl")
 include("helper_func.jl")
