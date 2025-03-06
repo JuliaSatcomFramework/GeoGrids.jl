@@ -7,69 +7,42 @@ get_lon(p::Point{𝔼{2},<:Cartesian2D{WGS84Latest}}) = coords(p).x |> ustrip |>
 get_lon(p::Point{🌐,<:LatLon{WGS84Latest}}) = coords(p).lon
 get_lon(p::LatLon) = p.lon
 
-## boders()
+## borders()
 # Define borders for PolyBorder
-CountriesBorders.borders(::Type{LatLon}, pb::PolyBorder) = pb.latlon
-CountriesBorders.borders(::Type{Cartesian}, pb::PolyBorder) = pb.cart
+CountriesBorders.borders(::Type{LatLon}, b::Union{PolyBorder, MultiBorder}) = b.latlon
+CountriesBorders.borders(::Type{Cartesian}, b::Union{PolyBorder, MultiBorder}) = b.cart
 
-# Define borders for MultiBorder
-CountriesBorders.borders(::Type{LatLon}, mb::MultiBorder) = mb.latlon
-CountriesBorders.borders(::Type{Cartesian}, mb::MultiBorder) = mb.cart
+# Define borders for AbstractRegion
+CountriesBorders.borders(crs::VALID_CRS, r::AbstractRegion) = borders(crs, r.domain)
 
-# Define borders for PolyRegion
-function CountriesBorders.borders(::Type{T}, pr::PolyRegion) where {T}
-    borders(T, pr.domain)
-end
+# polyareas
+CountriesBorders.polyareas(r::AbstractRegion) = polyareas(r.domain)
 
-# Define borders for PolyRegionOffset
-function CountriesBorders.borders(::Type{T}, pr::PolyRegionOffset) where {T}
-    borders(T, pr.domain)
-end
+# bboxes
+CountriesBorders.bboxes(r::AbstractRegion) = bboxes(r.domain)
+CountriesBorders.bboxes(b::PolyBorder) = (b.bbox,)
+CountriesBorders.bboxes(b::MultiBorder) = b.bboxes
 
-# Define borders for GeoRegion
-function CountriesBorders.borders(::Type{T}, gr::GeoRegion) where {T}
-    map(Base.Fix1(borders, T), gr.domain)
-end
-
-# Define borders for GeoRegionOffset
-function CountriesBorders.borders(::Type{T}, gr::GeoRegionOffset) where {T}
-    borders(T, gr.domain)
-end
 
 ## Base.in()
 # //NOTE: Interface choice: no possbility to call Base.in on GeoRegion, PolyRegion, or LatBeltRegion with a Cartesian2D point. This is a safe choice of interface of users.
-# GeoRegion()
-# Fallback on Base.in for CountryBorder defined in CountriesBorders
-Base.in(p::Point{🌐,<:LatLon{WGS84Latest}}, gr::GeoRegion) = in(p, gr.domain)
-Base.in(p::LatLon, gr::GeoRegion) = in(p, gr.domain)
-
-# GeoRegionOffset()
-Base.in(p::Point{🌐,<:LatLon{WGS84Latest}}, gr::GeoRegionOffset) = in(p, gr.domain)
-Base.in(p::LatLon, gr::GeoRegionOffset) = in(p, gr.domain)
-
-# PolyRegion()
-Base.in(p::Point{𝔼{2},<:Cartesian2D{WGS84Latest}}, pb::PolyBorder) = in(p, borders(Cartesian, pb))
-Base.in(p::Point{🌐,<:LatLon{WGS84Latest}}, pb::PolyBorder) = in(Meshes.flat(p), pb) # Flatten the point in Cartesian2D and call the method above
-Base.in(p::LatLon, pb::PolyBorder) = in(Point(LatLon{WGS84Latest,Deg{Float32}}(p.lat, p.lon)), pb)
-
-Base.in(p::Point{🌐,<:LatLon{WGS84Latest}}, pr::PolyRegion) = in(p, pr.domain)
-Base.in(p::LatLon, pr::PolyRegion) = in(p, pr.domain)
-
-# PolyRegionOffset()
-Base.in(p::Point{𝔼{2},<:Cartesian2D{WGS84Latest}}, mb::MultiBorder) = in(p, borders(Cartesian, mb))
-Base.in(p::Point{🌐,<:LatLon{WGS84Latest}}, mb::MultiBorder) = in(Meshes.flat(p), mb) # Flatten the point in Cartesian2D and call the method above
-Base.in(p::LatLon, mb::MultiBorder) = in(Point(LatLon{WGS84Latest,Deg{Float32}}(p.lat, p.lon)), mb)
-
-Base.in(p::Point{🌐,<:LatLon{WGS84Latest}}, pr::PolyRegionOffset) = in(p, pr.domain)
-Base.in(p::LatLon, pr::PolyRegionOffset) = in(p, pr.domain)
+for P in (POINT_LATLON, LATLON)
+    @eval Base.in(p::$P, r::AbstractRegion) = in_exit_early(p, r)
+    @eval Base.in(p::$P, b::Union{PolyBorder, MultiBorder}) = in_exit_early(p, b)
+end
 
 # LatBeltRegion()
-Base.in(p::Point{🌐,<:LatLon{WGS84Latest}}, lbr::LatBeltRegion) = lbr.lim[1] < get_lat(p) < lbr.lim[2]
-Base.in(p::LatLon, lbr::LatBeltRegion) = lbr.lim[1] < p.lat < lbr.lim[2]
+function CountriesBorders.in_exit_early(p, llr::LatBeltRegion)
+    lo, hi = llr.lim .|> ustrip
+    T = promote_type(typeof(lo), typeof(hi))
+    pc = to_cart_point(p, T isa AbstractFloat ? T : Float32)
+    lat = coords(pc).y |> ustrip
+    return lo < lat < hi
+end
 
 ## centroid()
 # Define ad-hoc methods for GeoRegion - using centroid definition of CountriesBorders.jl
-Meshes.centroid(crs::Type{<:Union{LatLon,Cartesian}}, d::GeoRegion) = centroid(crs, d.domain) # Fallback on all the definitions in CountriesBorders.jl for CountryBorder
+Meshes.centroid(crs::VALID_CRS, d::GeoRegion) = centroid(crs, d.domain) # Fallback on all the definitions in CountriesBorders.jl for CountryBorder
 Meshes.centroid(d::GeoRegion) = centroid(Cartesian, d)
 
 # Define ad-hoc methods for GeoRegionOffset - using centroid definition of CountriesBorders.jl

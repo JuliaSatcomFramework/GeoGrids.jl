@@ -11,7 +11,7 @@ const constants = (
 )
 
 """
-    PolyBorder{P} <: Geometry{🌐,LATLON}
+    PolyBorder{P} <: Geometry{🌐,LATLON{P}}
 
 Struct representing a PolyArea in both LatLon and Cartesian coordinates.
 
@@ -21,18 +21,20 @@ Fields:
 
 Where `P` is the precision type (e.g., Float32, Float64) for the coordinates.
 """
-struct PolyBorder{P} <: Geometry{🌐,LATLON}
+struct PolyBorder{P} <: Geometry{🌐,LATLON{P}}
     latlon::POLY_LATLON{P}
     cart::POLY_CART{P}
+    bbox::BOX_CART{P}
 end
 
-function PolyBorder(latlon::POLY_LATLON) 
-    cart = cartesian_geometry(latlon)
-    PolyBorder(latlon, cart)
+PolyBorder(latlon::POLY_LATLON) = PolyBorder(latlon, cartesian_geometry(latlon))
+function PolyBorder(latlon::POLY_LATLON, cart::POLY_CART) 
+    bbox = boundingbox(cart)
+    PolyBorder(latlon, cart, bbox)
 end
 
 """
-    MultiBorder{P} <: Geometry{🌐,LATLON}
+    MultiBorder{P} <: Geometry{🌐,LATLON{P}}
 
 Struct representing a Multi in both LatLon and Cartesian coordinates.
 
@@ -42,15 +44,16 @@ Fields:
 
 Where `P` is the precision type (e.g., Float32, Float64) for the coordinates.
 """
-struct MultiBorder{P} <: Geometry{🌐,LATLON}
+struct MultiBorder{P} <: Geometry{🌐,LATLON{P}}
     latlon::MULTI_LATLON{P}
     cart::MULTI_CART{P}
+    bboxes::Vector{BOX_CART{P}}
 end
 
-function MultiBorder(latlon::MULTI_LATLON) 
-    cart = cartesian_geometry(latlon)
-    MultiBorder(latlon, cart)
-end
+MultiBorder(latlon::MULTI_LATLON) = 
+    MultiBorder(latlon, cartesian_geometry(latlon))
+MultiBorder(latlon::MULTI_LATLON, cart::MULTI_CART) =
+    MultiBorder(latlon, cart, bboxes(cart))
 
 abstract type AbstractRegion end
 
@@ -128,7 +131,7 @@ Fields:
 """
 mutable struct LatBeltRegion <: AbstractRegion
     name::String
-    lim::Tuple{ValidAngle,ValidAngle} # [°] 
+    lim::Tuple{ValidAngle,ValidAngle} # [°]
 
     function LatBeltRegion(name::String, lim::Tuple{ValidAngle,ValidAngle})
         # Inputs validation    
