@@ -73,8 +73,6 @@ Structure providing a modified `NNTree` from NearestNeighbors.jl that allows que
 
 The LatLonTree internally stores an `NNTree` where the provided points are converted to SVector{2, Float64} and store the longitude and latitude values of the provided points in radians.
 
-While the structure is defined in GeoGrids.jl, its constructor and its usefulness is only realized through an extension when loading the NearestNeighbors.jl package.
-
 # Constructors
     LatLonTree{BallTree}(points::AbstractVector, metric::Metric = GreatCircleMetric(first(points)); kwargs...)
     LatLonTree{KDTree}(points::AbstractVector, metric::Metric = Euclidean(); kwargs...)
