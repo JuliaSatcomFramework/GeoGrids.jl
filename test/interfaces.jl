@@ -63,6 +63,9 @@ end
     gro = GeoRegionOffset(reg, 50e3)
     @test borders(gro) isa MULTI_LATLON
     @test borders(Cartesian, gro) isa MULTI_CART
+
+    # We test coverage of a point in the multi-border
+    @test LatLon(42,12) in gro.domain
 end
 
 @testitem "Test borders for PolyRegion" tags = [:interface] begin
