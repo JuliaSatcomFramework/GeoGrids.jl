@@ -14,6 +14,8 @@ CountriesBorders.borders(::Type{Cartesian}, b::Union{PolyBorder, MultiBorder}) =
 
 # Define borders for AbstractRegion
 CountriesBorders.borders(crs::VALID_CRS, r::AbstractRegion) = borders(crs, r.domain)
+CountriesBorders.borders(crs::VALID_CRS, gr::GeoRegion) = 
+    map(Base.Fix1(borders, crs), gr.domain)
 
 # polyareas
 CountriesBorders.polyareas(r::AbstractRegion) = polyareas(r.domain)
