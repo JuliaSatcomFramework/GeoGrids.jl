@@ -5,9 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.5.7] - 2025-03-08
 
 ### Changed
+- Sped up check for point inclusion in `AbstractRegion` by saving and pre-filtering on bounding boxes of polyareas, like in CountriesBorders.jl, resulting in a speed up factor of >20x
 - Moved back the functionality from the `NearestNeighborsExt.jl` to GeoGrids directly as NearestNeighbors.jl was anyhow an indirect dependency coming from Meshes.jl.
 
 ## [0.5.6] - 2025-03-05
