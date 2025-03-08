@@ -21,7 +21,8 @@ function filter_points(points::AbstractVector{<:Union{LATLON, POINT_LATLON}}, do
 end
 
 function filter_points(points::AbstractVector{<:Union{LATLON, POINT_LATLON}}, domain::Union{AbstractRegion, PolyBorder, MultiBorder}, ::EO) 
-    indices = findall(in(domain), points)
+    # We can't just use `in(domain)` as function as that goes through a different dispatch method of `findall` which doesn't work
+    indices = findall(p -> p in domain, points)
     return points[indices], indices
 end
 
