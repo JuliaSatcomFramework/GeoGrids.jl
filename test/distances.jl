@@ -1,4 +1,4 @@
-@testitem "NearestNeighborsExt" begin
+@testitem "LatLonTree" begin
     using GeoGrids
     using GeoGrids: authalic_radius
     using GeoGrids.Distances

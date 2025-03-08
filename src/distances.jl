@@ -20,10 +20,6 @@ for f in (:authalic_radius,)
     @eval $f(p::VALID_COORD) = $f(typeof(p))
 end
 
-mactype(x) = CoordRefSystems.mactype(x)
-mactype(P::Type{<:Point{🌐, <:LatLon}}) = mactype(P |> crs)
-mactype(p::VALID_COORD) = mactype(typeof(p))
-
 # Create a SVector with lon and lat as first and second elements translated in radians
 function raw_svector(p::LatLon)
     (; lat, lon) = p
@@ -43,7 +39,7 @@ struct GreatCircleMetric{T<:Number} <: Metric
 end
 GreatCircleMetric{T}() where {T<:Number} = GreatCircleMetric(T(6_371_000))
 GreatCircleMetric() = GreatCircleMetric{Float64}()
-GreatCircleMetric(p::VALID_COORD) = GreatCircleMetric{mactype(p)}(authalic_radius(p))
+GreatCircleMetric(p::VALID_COORD) = GreatCircleMetric{floattype(p)}(authalic_radius(p))
 
 function (dist::GreatCircleMetric)(x, y)
     length(x) == length(y) == 2 || throw(ArgumentError("x and y must have length 2 for GreatCircleMetric distance computation"))
@@ -72,8 +68,6 @@ great_circle_distance(p1::VALID_COORD, p2::VALID_COORD, r = authalic_radius(p1))
 Structure providing a modified `NNTree` from NearestNeighbors.jl that allows querying with Points in LatLon coordinates.
 
 The LatLonTree internally stores an `NNTree` where the provided points are converted to SVector{2, Float64} and store the longitude and latitude values of the provided points in radians.
-
-While the structure is defined in GeoGrids.jl, its constructor and its usefulness is only realized through an extension when loading the NearestNeighbors.jl package.
 
 # Constructors
     LatLonTree{BallTree}(points::AbstractVector, metric::Metric = GreatCircleMetric(first(points)); kwargs...)
@@ -130,7 +124,7 @@ See also: `knn!`, `nn`.
 function NearestNeighbors.knn(lltree::LatLonTree, point::VALID_COORD, k::Int, sortres=false, skip::F=always_false) where {F<:Function}
     idx = Vector{Int}(undef, k)
     (; tree) = lltree
-    _T = mactype(point)
+    _T = floattype(point)
     T = result_type(tree.metric, _T, _T)
     dist = Vector{T}(undef, k)
     point = raw_svector(point)
@@ -141,7 +135,7 @@ function NearestNeighbors.knn(lltree::LatLonTree, points::AbstractVector{<:VALID
     (; tree) = lltree
     check_k(tree, k)
     n_points = length(points)
-    _T = mactype(eltype(points))
+    _T = floattype(eltype(points))
     T = result_type(tree.metric, _T, _T)
     dists = [Vector{T}(undef, k) for _ in 1:n_points]
     idxs = [Vector{Int}(undef, k) for _ in 1:n_points]

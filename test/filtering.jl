@@ -64,8 +64,10 @@ Consider using `°` (or `rad`) from `Unitful` if you want to pass numbers in deg
     @test_throws "The first LAT limit must be lower than the second one..." LatBeltRegion(; lim=((π/2)rad, 0rad))
     @test_throws "The first LAT limit must be different than the second one..." LatBeltRegion(; lim=(90, 90))
     
-    @test filter_points([LatLon(14°, 1°), LatLon(90°, 1°), LatLon(60.1°, 1°), LatLon(26.9°, -65°), LatLon(-62°, -4.9°), LatLon(-60.1°, 14.9°), LatLon(10.1°, 70°)], belt) == sample_in
-    @test filter_points(map(x -> Point(x), [LatLon(14°, 1°), LatLon(90°, 1°), LatLon(60.1°, 1°), LatLon(26.9°, -65°), LatLon(-62°, -4.9°), LatLon(-60.1°, 14.9°), LatLon(10.1°, 70°)]), belt) == map(x -> Point(x), sample_in) # Additional test for type Point(LatLon())
+    points = [LatLon(14°, 1°), LatLon(90°, 1°), LatLon(60.1°, 1°), LatLon(26.9°, -65°), LatLon(-62°, -4.9°), LatLon(-60.1°, 14.9°), LatLon(10.1°, 70°)]
+    @test filter_points(points, belt) == sample_in
+
+    @test filter_points(map(Point, points), belt) == map(Point, sample_in) # Additional test for type Point(LatLon())
 end
 
 @testitem "Group By Test" tags = [:filtering] begin

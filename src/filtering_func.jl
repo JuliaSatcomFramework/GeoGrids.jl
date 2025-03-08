@@ -16,28 +16,14 @@ indices of the filtered points (wrt the input).
 - A vector of points that fall within the specified domain, subsection of the \
 input vector. The output is of the same type as the input.
 """
-function filter_points(points::AbstractVector{<:Union{LatLon,Point{🌐,<:LatLon{WGS84Latest}}}}, domain::Union{PolyRegion,LatBeltRegion,PolyRegionOffset})
-    filtered = filter(x -> in(x, domain), points) 
-
-    return filtered
-end
-function filter_points(points::AbstractVector{<:Union{LatLon,Point{🌐,<:LatLon{WGS84Latest}}}}, domain::Union{GeoRegion,GeoRegionOffset})
-    intermediateFilter = filter(x -> in(x, domain.convexhull), points) # quick check over the convexhull
-    filtered = filter(x -> in(x, domain), intermediateFilter) # accurate check over the actual domain
-
-    return filtered
+function filter_points(points::AbstractVector{<:Union{LATLON, POINT_LATLON}}, domain::Union{AbstractRegion, PolyBorder, MultiBorder}) 
+    return filter(in(domain), points)
 end
 
-function filter_points(points::AbstractVector{<:Union{LatLon,Point{🌐,<:LatLon{WGS84Latest}}}}, domain::Union{PolyRegion,LatBeltRegion,PolyRegionOffset}, ::EO)
-    indices = findall(x -> in(x, domain), points)
-
+function filter_points(points::AbstractVector{<:Union{LATLON, POINT_LATLON}}, domain::Union{AbstractRegion, PolyBorder, MultiBorder}, ::EO) 
+    # We can't just use `in(domain)` as function as that goes through a different dispatch method of `findall` which doesn't work
+    indices = findall(p -> p in domain, points)
     return points[indices], indices
-end
-function filter_points(points::AbstractVector{<:Union{LatLon,Point{🌐,<:LatLon{WGS84Latest}}}}, domain::Union{GeoRegion,GeoRegionOffset}, ::EO)
-    originalIdxInConvexhull = findall(x -> in(x, domain.convexhull), points) # quick check over the convexhull
-    finalIdx = findall(x -> in(x, domain), points[originalIdxInConvexhull]) # accurate check over the actual domain
-
-    return points[originalIdxInConvexhull[finalIdx]], originalIdxInConvexhull[finalIdx]
 end
 
 """
@@ -86,7 +72,7 @@ region.
 
 #     return groups
 # end
-function group_by_domain(points::AbstractVector{<:Union{LatLon,Point{🌐,<:LatLon{WGS84Latest}}}}, domains::AbstractVector; flagUnique=true)
+function group_by_domain(points::AbstractVector{<:Union{LATLON, POINT_LATLON}}, domains::AbstractVector; flagUnique=true)
     # Check region names validity
     names = map(x -> x.name, domains)
     length(unique(names)) == length(names) || error("The region names passed to group_by must be unique...")
@@ -96,7 +82,7 @@ function group_by_domain(points::AbstractVector{<:Union{LatLon,Point{🌐,<:LatL
     for p in points
         for dom in domains
             vec = groups[dom.name]
-            if _check_in(p, dom)
+            if in(p, dom)
                 push!(vec, p)
                 flagUnique && break
             end
@@ -104,22 +90,4 @@ function group_by_domain(points::AbstractVector{<:Union{LatLon,Point{🌐,<:LatL
     end
 
     return groups
-end
-
-function _check_in(p, dom::GeoRegion)
-    if p in dom.convexhull # quick check over the convexhull
-        if p in dom # accurate check over the actual domain
-            return true
-        end
-    end
-
-    return false
-end
-
-function _check_in(p, dom::Union{PolyRegion,LatBeltRegion})
-    if p in dom # accurate check over the actual domain
-        return true
-    end
-
-    return false
 end
