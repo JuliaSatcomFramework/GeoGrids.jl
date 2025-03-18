@@ -23,6 +23,7 @@ pages = [
         "Regions" => "regions/regions.md",
         "Filtering" => "regions/filtering.md",
         "Tessellation" => "tessellation.md",
+        "Coloring" => "coloring.md",
         "Utils" => "utils.md",
     ],	
     "API" => "api.md",
