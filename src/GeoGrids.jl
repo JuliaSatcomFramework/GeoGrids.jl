@@ -33,6 +33,7 @@ include("plot_func.jl")
 export AbstractRegion, GlobalRegion, GeoRegion, PolyRegion, LatBeltRegion,
     GeoRegionOffset, PolyRegionOffset,
     MultiBorder, PolyBorder,
+    HotSpotRegion, MultiRegion,
     AbstractTiling, ICO, HEX, H3,
     EO
     # UnitfulAngleType, UnitfulAngleQuantity, ValidAngle,

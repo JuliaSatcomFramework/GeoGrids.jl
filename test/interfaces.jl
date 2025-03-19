@@ -135,6 +135,29 @@ end
     @test centroid(LatLon, poly.domain) == testPoint_latlon
 end
 
+@testitem "HotSpotRegion" tags = [:interface] begin
+    using GeoGrids: constants
+    degkm = deg2rad(1) * constants.Re_mean
+    hr = HotSpotRegion(; name = "hotspot", center = LatLon(40°, 10°), radius = degkm)
+    @test hr isa HotSpotRegion
+    @test LatLon(40,10) in hr
+    @test LatLon(40 + 0.99,10) in hr
+    @test LatLon(40 + 1.01,10) ∉ hr
+end
+
+@testitem "MultiRegion" tags = [:interface] begin
+    reg = GeoRegion(name="ITA", admin="Italy")
+    poly = PolyArea(map(Point, [LatLon(10°, -5°), LatLon(10°, 15°), LatLon(27°, 15°), LatLon(27°, -5°)]))
+    lbr = LatBeltRegion(; name = "lbr", lim = (-30°, -29°))
+    hr = HotSpotRegion(; name = "hr", center = LatLon(-40°, 10°), radius = 500e3)
+    mr = MultiRegion([reg, poly, lbr, hr]; name = "MultiRegion")
+    @test mr isa MultiRegion
+    @test centroid(LatLon, reg) in mr
+    @test centroid(poly) in mr
+    @test LatLon(-29.5, 0) in mr
+    @test LatLon(-40, 10) in mr
+end
+
 ## Helpers
 @testitem "Helper Functions" tags = [:general] begin
     r = GeoRegion(name="ITA", admin="Italy")

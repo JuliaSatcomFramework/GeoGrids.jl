@@ -19,9 +19,37 @@ CountriesBorders.borders(crs::VALID_CRS, gr::GeoRegion) =
 
 # polyareas
 CountriesBorders.polyareas(r::AbstractRegion) = polyareas(r.domain)
+function CountriesBorders.polyareas(r::LatBeltRegion) 
+    lo, hi = r.lim
+    # We have to reduce the box to exclude the bounds of the region to keep the behavior of the current LatBeltRegion
+    lo = ustrip(lo) |> Float32 |> nextfloat
+    hi = ustrip(hi) |> Float32 |> prevfloat
+    f(ll) = to_cart_point(ll, Float32)
+    # We make this not just 4 points to have plotting with scattergeo not result in very ugly thing. We anyhow expect this not to be a problem for the speed of `in`
+    pts = reduce(vcat, (
+        [LatLon(hi, lon) |> f for lon in range(-180, 180; step = 5)],
+        [LatLon(lat, 180) |> f for lat in range(hi, lo; step = -1)],
+        [LatLon(lo, lon) |> f for lon in range(180, -180; step = -5)],
+        [LatLon(lat, -180) |> f for lat in range(lo, hi; step = 1)],
+    ))
+    p = PolyArea(pts[1:end-1])
+    return (p, )
+end
 
 # bboxes
 CountriesBorders.bboxes(r::AbstractRegion) = bboxes(r.domain)
+function CountriesBorders.bboxes(r::LatBeltRegion)
+    lo, hi = r.lim
+    # We have to reduce the box to exclude the bounds of the region to keep the behavior of the current LatBeltRegion
+    lo = ustrip(lo) |> Float32 |> nextfloat
+    hi = ustrip(hi) |> Float32 |> prevfloat
+    return (
+        Box(
+            to_cart_point(LatLon(lo, -180), Float32),
+            to_cart_point(LatLon(hi, 180), Float32),
+        ),
+    )
+end
 CountriesBorders.bboxes(b::PolyBorder) = (b.bbox,)
 CountriesBorders.bboxes(b::MultiBorder) = b.bboxes
 
@@ -34,13 +62,7 @@ for P in (POINT_LATLON, LATLON)
 end
 
 # LatBeltRegion()
-function CountriesBorders.in_exit_early(p, llr::LatBeltRegion)
-    lo, hi = llr.lim .|> ustrip
-    T = promote_type(typeof(lo), typeof(hi))
-    pc = to_cart_point(p, T isa AbstractFloat ? T : Float32)
-    lat = coords(pc).y |> ustrip
-    return lo < lat < hi
-end
+CountriesBorders.in_exit_early(p, llr::LatBeltRegion) = to_cart_point(p, Float32) in only(bboxes(llr))
 
 ## centroid()
 # Define ad-hoc methods for GeoRegion - using centroid definition of CountriesBorders.jl
@@ -76,3 +98,4 @@ CountriesBorders.extract_countries(r::GeoRegion) = r.domain
 CountriesBorders.geom_iterable(b::Union{PolyBorder, MultiBorder}) = geom_iterable(borders(LatLon, b))
 
 CountriesBorders.geom_iterable(r::AbstractRegion) = geom_iterable(r.domain)
+CountriesBorders.geom_iterable(r::LatBeltRegion) = polyareas(r)

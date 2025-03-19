@@ -131,7 +131,7 @@ Fields:
 """
 mutable struct LatBeltRegion <: AbstractRegion
     name::String
-    lim::Tuple{ValidAngle,ValidAngle} # [°]
+    lim::Tuple{Deg{Float64},Deg{Float64}} # [°]
 
     function LatBeltRegion(name::String, lim::Tuple{ValidAngle,ValidAngle})
         # Inputs validation    
@@ -155,6 +155,72 @@ Consider using `°` (or `rad`) from `Unitful` if you want to pass numbers in deg
 end
 
 LatBeltRegion(; name::String="region_name", lim) = LatBeltRegion(name, lim)
+
+
+# HotSpotRegion <: AbstractRegion
+"""
+    HotSpotRegion{P} <: AbstractRegion
+
+Type representing a hot spot region, which is defined as the set of points which are less than `radius` distance from a given `center` in LatLon CRS.
+
+Fields:
+- `name::String`: Name identifying the hot spot
+- `center::POINT_LATLON{P}`: Center of the hot spot
+- `radius::Float64`: Radius of the hot spot [m]
+- `domain::PolyBorder{P}`: Polygon identifying the polygon in latlon which represents a _circle_ of specified radius from the center
+
+# Constructor
+    HotSpotRegion(; name::String, center::Union{LATLON, POINT_LATLON}, radius::Number)
+
+Create a HotSpotRegion from a name, a center and a radius.
+"""
+struct HotSpotRegion{P} <: AbstractRegion
+    "Name identifying the hot spot"
+    name::String
+    "Center of the hot spot"
+    center::POINT_LATLON{P}
+    "Radius of the hot spot [m]"
+    radius::Float64
+    "Polygon identifying the polygon in latlon which represents a _circle_ of specified radius from the center"
+    domain::PolyBorder{P}
+end
+function HotSpotRegion(; name::String, center::Union{LATLON, POINT_LATLON}, radius::Number)
+    c = center isa LATLON ? Point(center) : center
+    circ_poly = gen_circle_pattern(c, radius; n = 51) |> only
+    domain = PolyBorder(circ_poly[1:end-1] |> PolyArea)
+    return HotSpotRegion{floattype(c)}(name, c, radius, domain)
+end
+
+"""
+    MultiRegion{P} <: AbstractRegion
+
+Type representing a region which is defined as the union of multiple PolyAreas.
+
+Fields:
+- `name::String`: Name identifying the multi region
+- `domain::MultiBorder{P}`: MultiPolygon identifying the various regions included in the multi region
+
+# Constructor
+    MultiRegion(areas::Vector; name::String)
+
+The constructor takes a vector of polyareas, Multi, or other AbstractRegions and creates a single MultiBorder which encompasses all the polyareas of the provided `areas`.
+"""
+@kwdef struct MultiRegion{P} <: AbstractRegion
+    "Name identifying the multi region"
+    name::String
+    "List of Polygons identifying the various regions included in the multi region"
+    domain::MultiBorder{P}
+end
+function MultiRegion(areas::Vector; name::String)
+    # We convert all polygons to Float32 machine precision
+    f(reg) = Iterators.map(change_floattype(Float32), polyareas(reg))
+    f(reg::Union{POLY_LATLON, MULTI_LATLON}) = cartesian_geometry(reg) |> f
+
+    multi_cart = Iterators.flatten((f(area) for area in areas)) |> Multi
+    multi_latlon = latlon_geometry(multi_cart)
+    domain = MultiBorder(multi_latlon, multi_cart)
+    return MultiRegion(name, domain)
+end
 
 ## Define Tessellation Types
 abstract type AbstractTiling end
