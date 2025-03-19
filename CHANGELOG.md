@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Added
+- Two new subtypes of `AbstractRegion` have been added (check docstrings for more details):
+  - `HotspotRegion` which is a region representing all points within a certain distance (radius) of a point.
+  - `MultiRegion` which is a region encompassing multiple polyareas, and that can be constructed with a vector of `AbstractRegion`s as input.
+
+### Changed
+- The `LatBeltRegion` now has the lim field which is a `NTuple{2, Deg{Float32}}` to be concrete and has an implementation of `bboxes` and `polyareas` to simpify plotting and inclusion within a `MultiRegion`.
+
 ## [0.5.7] - 2025-03-08
 
 ### Changed

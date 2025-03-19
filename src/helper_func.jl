@@ -91,3 +91,11 @@ function _add_angular_offset(inputθϕ, offsetθϕ)
 
     return (θ=θ, ϕ=ϕ) # [deg] ALBERTO: ?? Is it deg though? as the acos and atan return values in radians
 end
+
+# This is a function that will force a POLY_CART to have a specific machine type
+function change_floattype(poly::POLY_CART, T::Type{<:Real})
+    map(rings(poly)) do r
+        map(p -> to_cart_point(p, T), vertices(r)) |> Ring
+    end |> splat(PolyArea)
+end
+change_floattype(T::Type{<:Real}) = p -> change_floattype(p, T)
