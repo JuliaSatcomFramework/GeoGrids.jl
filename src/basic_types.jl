@@ -131,7 +131,7 @@ Fields:
 """
 mutable struct LatBeltRegion <: AbstractRegion
     name::String
-    lim::Tuple{ValidAngle,ValidAngle} # [°]
+    lim::Tuple{Deg{Float64},Deg{Float64}} # [°]
 
     function LatBeltRegion(name::String, lim::Tuple{ValidAngle,ValidAngle})
         # Inputs validation    
