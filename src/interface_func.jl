@@ -7,7 +7,7 @@ get_lon(p::Point{𝔼{2},<:Cartesian2D{WGS84Latest}}) = coords(p).x |> ustrip |>
 get_lon(p::Point{🌐,<:LatLon{WGS84Latest}}) = coords(p).lon
 get_lon(p::LatLon) = p.lon
 
-CountriesBorders.floattype(r::AbstractRegion) = floattype(r.domain)
+CountriesBorders.floattype(r::AbstractRegion) = return floattype(r.domain)
 CountriesBorders.floattype(::LatBeltRegion) = return Float64
 
 ## borders()
