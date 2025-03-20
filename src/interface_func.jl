@@ -65,31 +65,16 @@ CountriesBorders.in_exit_early(p, llr::LatBeltRegion) = to_cart_point(Float32, p
 CountriesBorders.in_exit_early(p, b::BoxBorder{P}) where P = to_cart_point(P, p) in borders(Cartesian, b)
 
 ## centroid()
-# Define ad-hoc methods for GeoRegion - using centroid definition of CountriesBorders.jl
-Meshes.centroid(crs::VALID_CRS, d::GeoRegion) = centroid(crs, d.domain) # Fallback on all the definitions in CountriesBorders.jl for CountryBorder
-Meshes.centroid(d::GeoRegion) = centroid(Cartesian, d)
-
-# Define ad-hoc methods for GeoRegionOffset - using centroid definition of CountriesBorders.jl
-Meshes.centroid(crs::Type{<:Union{LatLon,Cartesian}}, d::GeoRegionOffset) = centroid(crs, d.domain) # Fallback on all the definitions in CountriesBorders.jl for CountryBorder
-Meshes.centroid(d::GeoRegionOffset) = centroid(Cartesian, d)
-
-# Define ad-hoc methods for PolyRegion - using centroid definition of Meshes.jl
-Meshes.centroid(::Type{Cartesian}, d::PolyBorder) = centroid(d.cart)
-function Meshes.centroid(::Type{LatLon}, d::PolyBorder)
-    c = centroid(d.cart)
-    LatLon{WGS84Latest}(get_lat(c), get_lon(c)) |> Point
+# Methods for BorderGeometry
+function Meshes.centroid(crs::VALID_CRS, b::BorderGeometry)
+    cart = centroid(borders(Cartesian, b))
+    return crs === Cartesian ? cart : to_latlon_point(cart)
 end
-Meshes.centroid(crs::Type{<:Union{LatLon,Cartesian}}, d::PolyRegion) = centroid(crs, d.domain)
-Meshes.centroid(d::PolyRegion) = centroid(Cartesian, d.domain)
+Meshes.centroid(b::BorderGeometry) = centroid(Cartesian, b)
 
-# Define ad-hoc methods for PolyRegionOffset - using centroid definition of Meshes.jl
-Meshes.centroid(::Type{Cartesian}, d::MultiBorder) = centroid(d.cart)
-function Meshes.centroid(::Type{LatLon}, d::MultiBorder)
-    c = centroid(d.cart)
-    LatLon{WGS84Latest}(get_lat(c), get_lon(c)) |> Point
-end
-Meshes.centroid(crs::Type{<:Union{LatLon,Cartesian}}, d::PolyRegionOffset) = centroid(crs, d.domain)
-Meshes.centroid(d::PolyRegionOffset) = centroid(Cartesian, d.domain)
+# Define ad-hoc methods for AbstractRegions - using centroid definition of CountriesBorders.jl
+Meshes.centroid(crs::VALID_CRS, d::AbstractRegion) = centroid(crs, d.domain) # Fallback on all the definitions in CountriesBorders.jl for CountryBorder
+Meshes.centroid(d::AbstractRegion) = centroid(Cartesian, d)
 
 ## CountriesBorders.extract_countries()
 CountriesBorders.extract_countries(r::GeoRegion) = r.domain
