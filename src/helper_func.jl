@@ -105,3 +105,27 @@ function box_to_poly_oversample(b::Union{BOX_CART, BOX_LATLON}, lon_dist = 5)
 	lo_gen = [f(LatLon(lo_lat, lon)) for lon in range(hi_lon, lo_lon, nlon)]
     p = Ring(vcat(hi_gen, lo_gen)) |> PolyArea
 end
+
+# This function is used to take a MULTI_CART or Region and a clipping mask and create a MultiBorder obtained by clipping with the mask using the Sutherland-Hodgman algorithm
+function clipped_multiborder(original::MULTI_CART{P}, mask::Union{BoxBorder{P}, PolyBorder{P}}) where P
+    # We iterate over all polygons, converting everything to Float32 precision
+    clipped_polys = POLY_CART{P}[]
+    for poly in polyareas(original)
+        clipped = Meshes.clip(poly, mask.cart, Meshes.SutherlandHodgmanClipping())
+        if !isnothing(clipped)
+            push!(clipped_polys, clipped)
+        end
+    end
+    isempty(clipped_polys) && error("No polygons left after clipping...")
+    # We create a Multi from the clipped polygons
+    multi_cart = Multi(clipped_polys)
+    multi_latlon = latlon_geometry(multi_cart)
+    domain = MultiBorder(multi_latlon, multi_cart)
+end
+function clipped_multiborder(original::MULTI_CART, mask::Union{BoxBorder{P}, PolyBorder{P}}) where P
+    clipped_multiborder(cartesian_geometry(P, original), mask)
+end
+function clipped_multiborder(original, mask::Union{BoxBorder{P}, PolyBorder{P}}) where P
+    multi = polyareas(original) |> Multi
+    clipped_multiborder(multi, mask)
+end

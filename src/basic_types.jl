@@ -255,6 +255,42 @@ function MultiRegion(areas::Vector; name::String)
     return MultiRegion(name, domain)
 end
 
+"""
+    ClippedRegion{P} <: AbstractRegion
+
+Type representing a region which is defined as the intersection (obtained by Sutherland-Hodgman clipping algorithm) of an arbitrary region and a mask.
+
+Fields:
+- `name::String`: Name of the region
+- `original::AbstractRegion`: Original input before clipping
+- `mask::Union{BoxBorder{P}, PolyBorder{P}}`: Mask used for clipping the region
+- `domain::MultiBorder{P}`: Domain of the region
+
+Where `P` is the precision type for coordinates.
+
+This can be useful to easily defin regions which are obtained by e.g. specific countries or continent cut by simple geometries like boxes or other polygons.
+
+# Constructor
+    ClippedRegion(original, mask::Union{BoxBorder{P}, PolyBorder{P}}; name::String)
+
+The constructor takes an arbitrary region and a mask and creates a ClippedRegion by clipping the region with the mask using the Sutherland-Hodgman algorithm.
+"""
+struct ClippedRegion{P} <: AbstractRegion
+    "Name of the region"
+    name::String
+    "Original input before clipping"
+    original # This is abstract but we never access it in hot loop so it shouldn't matter
+    "Mask used for clipping the region"
+    mask::Union{BoxBorder{P}, PolyBorder{P}}
+    "Domain of the region"
+    domain::MultiBorder{P}
+end
+
+function ClippedRegion(original, mask::Union{BoxBorder{P}, PolyBorder{P}}; name::String) where P
+    domain = clipped_multiborder(original, mask)
+    return ClippedRegion{P}(name, original, mask, domain)
+end
+
 ## Define Tessellation Types
 abstract type AbstractTiling end
 
