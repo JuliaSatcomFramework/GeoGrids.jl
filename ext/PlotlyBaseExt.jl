@@ -6,7 +6,28 @@ using Unitful: ustrip
 using Meshes: vertices, rings, Multi, Ngon, 🌐, WGS84Latest
 
 using GeoGrids
-using GeoGrids: extract_plot_coords, MultiBorder, PolyBorder, AbstractRegion, BorderGeometry
+using GeoGrids: MultiBorder, PolyBorder, AbstractRegion, BorderGeometry
+using GeoGrids.CountriesBorders: LATLON, POINT_LATLON, extract_plot_coords, extract_plot_coords!
+
+const VALID_COORD = Union{LATLON, POINT_LATLON}
+
+plot_coords(x) = extract_plot_coords(x)
+function plot_coords(ps::AbstractVector{<:VALID_COORD})
+    lat = Float32[]
+    lon = Float32[]
+    extract_plot_coords!(lat, lon, ps)
+    return (; lat, lon)
+end
+function plot_coords(ps::AbstractVector{<:AbstractVector{<:VALID_COORD}})
+    lat = Float32[]
+    lon = Float32[]
+    for pv in ps
+        !isempty(lat) && !isempty(lon) && extract_plot_coords!(lat, lon, LatLon(NaN, NaN))
+        extract_plot_coords!(lat, lon, pv)
+    end
+    return (; lat, lon)
+end
+
 
 const DEFAULT_CELL_CONTOUR = (;
     mode="lines",
@@ -59,7 +80,7 @@ const DEFAULT_GEOLAYOUT = (;
 ## Auxiliary Functions
 # Internal functions for creating the scatter plots.
 """
-    GeoGrids._get_scatter_points(points::AbstractVector{<:Union{LatLon, Point{🌐,<:LatLon{WGS84Latest}}}}; kwargs...) -> PlotlyJS.Plot
+    GeoGrids._get_scatter_points(points::AbstractVector{<:Union{LatLon, Point{🌐,<:LatLon{WGS84Latest}}}}; kwargs...)
 
 This function takes an array of geographic points and generates a scatter plot
 using the `scattergeo` function from the PlotlyJS package. The points are
@@ -73,19 +94,18 @@ points that can be of type `LatLon`, `AbstractVector`, or `Tuple`. Each \
 point represents a geographic location.
 
 ## Keyword Arguments
-- `kwargs`: Additional keyword arguments to customize the `scattergeo` plot. \
+- `kwargs`: Additional keyword arguments to customize the `scattergeo` trace. \
 These arguments are passed directly to the `scattergeo` function from \
-PlotlyJS.
+PlotlyBase.
 
 ## Returns
-- A `PlotlyJS.Plot` object representing the scatter plot of the provided \
+- A `scattergeo` object representing the scatter plot of the provided \
 geographic points.
 """
-function GeoGrids._get_scatter_points(points::AbstractVector{<:Union{LatLon,Point{🌐,<:LatLon{WGS84Latest}}}}; kwargs...)
+function GeoGrids._get_scatter_points(points::AbstractVector{<:VALID_COORD}; kwargs...)
     # Markers for the points
     return scattergeo(;
-        lat=map(x -> GeoGrids.get_lat(x) |> ustrip, points), # Vectorize such to be sure to avoid matrices.
-        lon=map(x -> GeoGrids.get_lon(x) |> ustrip, points), # Vectorize such to be sure to avoid matrices.
+        plot_coords(points)...,
         DEFAULT_POINT...,
         kwargs...
     )
@@ -112,19 +132,9 @@ the plot's appearance (e.g., color, line style, marker options).
 - A `scattergeo` plot object: The scatter plot visualization of the cell \
 contours, ready for rendering in a geographic plot.
 """
-function GeoGrids._get_scatter_cellcontour(polygons::AbstractVector{<:AbstractVector{<:Union{LatLon,Point{🌐,<:LatLon{WGS84Latest}}}}}; kwargs...)
-    # Extract scatter plot from mesh.
-    polygonsTrace = []
-    for ngon in polygons
-        thisNgon = map(ngon) do vertex # Loop through vertices to create the hexagon for plotting
-            (ustrip(GeoGrids.get_lat(vertex)), ustrip(GeoGrids.get_lon(vertex)))
-        end
-        push!(polygonsTrace, [thisNgon..., (NaN, NaN)]...)
-    end
-
+function GeoGrids._get_scatter_cellcontour(polygons::AbstractVector{<:AbstractVector{<:VALID_COORD}}; kwargs...)
     return scattergeo(;
-        lat=map(x -> first(x) |> ustrip, polygonsTrace),
-        lon=map(x -> last(x) |> ustrip, polygonsTrace),
+        plot_coords(polygons)...,
         DEFAULT_CELL_CONTOUR...,
         kwargs...
     )
@@ -155,14 +165,10 @@ for each.
 """
 function GeoGrids._get_scatter_poly(poly::PolyArea{🌐,<:LatLon{WGS84Latest}}; kwargs...)
     # scatter line
-    r = rings(poly)
-    out = map(r) do ring
+    map(rings(poly)) do ring
         # Each ring will be a separate trace.
-        temp = vertices(ring)
-        v = vcat(temp, temp[1])
         scattergeo(;
-            lat=map(x -> GeoGrids.get_lat(x) |> ustrip, v), # Vectorize such to be sure to avoid matrices.
-            lon=map(x -> GeoGrids.get_lon(x) |> ustrip, v), # Vectorize such to be sure to avoid matrices.
+            plot_coords(ring)...,
             mode="lines",
             line_color="red",
             showlegend=false,
@@ -205,13 +211,13 @@ end
 
 ## Core plotting functions.
 """
-    plot_geo_points(points::AbstractVector{<:Union{LatLon, Point{🌐,<:LatLon{WGS84Latest}}}}; title::String="Point Position GEO Map", camera::Symbol=:twodim, kwargs_scatter::NamedTuple=(); kwargs_layout::NamedTuple=()) -> PlotlyJS.Plot
-    plot_geo_points(p::Union{LatLon, Point{🌐,<:LatLon{WGS84Latest}}}; title::String="Point Position GEO Map", camera::Symbol=:twodim, kwargs_scatter::NamedTuple=(); kwargs_layout::NamedTuple=()) -> PlotlyJS.Plot
+    plot_geo_points(points::AbstractVector{<:Union{LatLon, Point{🌐,<:LatLon{WGS84Latest}}}}; title::String="Point Position GEO Map", camera::Symbol=:twodim, kwargs_scatter::NamedTuple=(); kwargs_layout::NamedTuple=())
+    plot_geo_points(p::Union{LatLon, Point{🌐,<:LatLon{WGS84Latest}}}; title::String="Point Position GEO Map", camera::Symbol=:twodim, kwargs_scatter::NamedTuple=(); kwargs_layout::NamedTuple=())
 
 This function generates a geographic plot for a given array of points. It
 creates a scatter plot of the points using `GeoGrids._get_scatter_points` and sets up the
 layout with `_default_geolayout`. The plot is created using the `plotly_plot`
-function from PlotlyJS.
+function from PlotlyExtensionsHelper.
 
 ## Arguments
 - `points::AbstractVector{<:Union{LatLon, Point{🌐,<:LatLon{WGS84Latest}}}}`: An \
@@ -231,20 +237,20 @@ the plot layout. These arguments are passed directly to the \
 `_default_geolayout` function.
 
 ## Returns
-- A `PlotlyJS.Plot` object representing the geographic plot of the provided \
-points.
+- A object representing the geographic plot of the provided \
+points (the specific type of the object depends on the loaded Plotly package as per `plotly_plot` output).
 
 See also: [`GeoGrids._get_scatter_points`](@ref), [`_default_geolayout`](@ref),
 [`plot_geo_cells`](@ref)
 """
-function GeoGrids.plot_geo_points(points::AbstractVector{<:Union{LatLon,Point{🌐,<:LatLon{WGS84Latest}}}}; title="Point Position GEO Map", camera::Symbol=:twodim, kwargs_scatter=(;), kwargs_layout=(;))
+function GeoGrids.plot_geo_points(points::AbstractVector{<:VALID_COORD}; title="Point Position GEO Map", camera::Symbol=:twodim, kwargs_scatter=(;), kwargs_layout=(;))
     # Markers for the points
     scatterpoints = GeoGrids._get_scatter_points(points; kwargs_scatter...)
     layout = _default_geolayout(; title, camera, kwargs_layout...)
 
     plotly_plot([scatterpoints], layout)
 end
-GeoGrids.plot_geo_points(p::Union{LatLon,Point{🌐,<:LatLon{WGS84Latest}}}; kwargs...) = GeoGrids.plot_geo_points([p]; kwargs...)
+GeoGrids.plot_geo_points(p::VALID_COORD; kwargs...) = GeoGrids.plot_geo_points([p]; kwargs...)
 
 """
     plot_geo_cells(cellCenters::AbstractVector{<:Union{LatLon, Point{🌐,<:LatLon{WGS84Latest}}}}; title::String="Cell Layout GEO Map", camera::Symbol=:twodim, kwargs_centers::NamedTuple=(;), kwargs_layout::NamedTuple=(;))
@@ -284,14 +290,14 @@ and/or contours on a map.
 See also: [`GeoGrids._get_scatter_points`](@ref), [`GeoGrids._get_scatter_cellcontour`](@ref),
 [`_default_geolayout`](@ref), [`plot_geo_points`](@ref)
 """
-function GeoGrids.plot_geo_cells(cellCenters::AbstractVector{<:Union{LatLon,Point{🌐,<:LatLon{WGS84Latest}}}}; title="Cell Layout GEO Map", camera::Symbol=:twodim, kwargs_centers=(;), kwargs_layout=(;))
+function GeoGrids.plot_geo_cells(cellCenters::AbstractVector{<:VALID_COORD}; title="Cell Layout GEO Map", camera::Symbol=:twodim, kwargs_centers=(;), kwargs_layout=(;))
     # Fallback method to plot only cell centers
     k = (; DEFAULT_CELL_CENTER..., text=map(x -> string(x), 1:length(cellCenters)), kwargs_centers...) # Default for text mode for cellCenters
     GeoGrids.plot_geo_points(cellCenters; title, camera, kwargs_scatter=k, kwargs_layout)
 end
-GeoGrids.plot_geo_cells(cc::Union{LatLon,Point{🌐,<:LatLon{WGS84Latest}}}; kwargs...) = GeoGrids.plot_geo_points([cc]; kwargs...)
+GeoGrids.plot_geo_cells(cc::VALID_COORD; kwargs...) = GeoGrids.plot_geo_points([cc]; kwargs...)
 
-function GeoGrids.plot_geo_cells(cellCenters::AbstractVector{<:Union{LatLon,Point{🌐,<:LatLon{WGS84Latest}}}}, cellContours::AbstractVector{<:AbstractVector{<:Union{LatLon,Point{🌐,<:LatLon{WGS84Latest}}}}}; title="Cell Layout GEO Map", camera::Symbol=:twodim, kwargs_centers=(;), kwargs_contours=(;), kwargs_layout=(;))
+function GeoGrids.plot_geo_cells(cellCenters::AbstractVector{<:VALID_COORD}, cellContours::AbstractVector{<:AbstractVector{<:VALID_COORD}}; title="Cell Layout GEO Map", camera::Symbol=:twodim, kwargs_centers=(;), kwargs_contours=(;), kwargs_layout=(;))
     # Create scatter plot for the cells contours.
     scatterContours = GeoGrids._get_scatter_cellcontour(cellContours; kwargs_contours...)
 
@@ -304,7 +310,7 @@ function GeoGrids.plot_geo_cells(cellCenters::AbstractVector{<:Union{LatLon,Poin
 
     plotly_plot([scatterContours, scatterCenters], layout)
 end
-GeoGrids.plot_geo_cells(cellCenter::Union{LatLon,Point{🌐,<:LatLon{WGS84Latest}}}, cellContour::AbstractVector{<:Union{LatLon,Point{🌐,<:LatLon{WGS84Latest}}}}; kwargs...) = GeoGrids.plot_geo_cells([cellCenter], [cellContour]; kwargs...)
+GeoGrids.plot_geo_cells(cellCenter::VALID_COORD, cellContour::AbstractVector{<:VALID_COORD}; kwargs...) = GeoGrids.plot_geo_cells([cellCenter], [cellContour]; kwargs...)
 
 """
     plot_geo_poly(polys::AbstractVector{<:PolyArea{🌐,<:LatLon{WGS84Latest}}}; title="Polygon GEO Map", camera::Symbol=:twodim, kwargs_scatter=(;), kwargs_layout=(;))
