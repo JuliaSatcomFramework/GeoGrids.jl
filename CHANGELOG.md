@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.5.8] - 2025-03-20
+
 ### Added
 - Added a new `color_greedy` function to color a set of points with a greedy algorithm, useful for assigning colors to cells which are not located on a regular grid.
 - Three new subtypes of `AbstractRegion` have been added (check docstrings for more details):
