@@ -100,7 +100,7 @@ function box_to_poly_oversample(b::Union{BOX_CART, BOX_LATLON}, lon_dist = 5)
     f = to_cart_point
 	Δlon = hi_lon - lo_lon
     # We have points in lon distanced by around 5° mostly to avoid problems in plotting on scattergeo
-    nlon = ceil(Int, Δlon / lon_dist)
+    nlon = max(2, ceil(Int, Δlon / lon_dist))
 	hi_gen = [f(LatLon(hi_lat, lon)) for lon in range(lo_lon, hi_lon, nlon)]
 	lo_gen = [f(LatLon(lo_lat, lon)) for lon in range(hi_lon, lo_lon, nlon)]
     p = Ring(vcat(hi_gen, lo_gen)) |> PolyArea
