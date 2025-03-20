@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed the implementation of `offset_region` to be more generic and simplified, without multiple methods for GeoRegion and PolyRegion as they were already doing basically the same thing.
 - The `LatBeltRegion` now has the lim field which is a `NTuple{2, Deg{Float64}}` to be concrete and has an implementation of `bboxes` and `polyareas` to simpify plotting and inclusion within a `MultiRegion`.
 
+### Fixed
+- Fixed the tessellation function returning vectors with abstract eltype
+
 ## [0.5.7] - 2025-03-08
 
 ### Changed
