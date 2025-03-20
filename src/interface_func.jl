@@ -7,49 +7,48 @@ get_lon(p::Point{𝔼{2},<:Cartesian2D{WGS84Latest}}) = coords(p).x |> ustrip |>
 get_lon(p::Point{🌐,<:LatLon{WGS84Latest}}) = coords(p).lon
 get_lon(p::LatLon) = p.lon
 
+CountriesBorders.floattype(r::AbstractRegion) = floattype(r.domain)
+CountriesBorders.floattype(::LatBeltRegion) = return Float64
+
 ## borders()
 # Define borders for PolyBorder
-CountriesBorders.borders(::Type{LatLon}, b::Union{PolyBorder, MultiBorder}) = b.latlon
-CountriesBorders.borders(::Type{Cartesian}, b::Union{PolyBorder, MultiBorder}) = b.cart
+CountriesBorders.borders(::Type{LatLon}, b::BorderGeometry) = b.latlon
+CountriesBorders.borders(::Type{Cartesian}, b::BorderGeometry) = b.cart
 
 # Define borders for AbstractRegion
 CountriesBorders.borders(crs::VALID_CRS, r::AbstractRegion) = borders(crs, r.domain)
 CountriesBorders.borders(crs::VALID_CRS, gr::GeoRegion) = 
     map(Base.Fix1(borders, crs), gr.domain)
 
-# polyareas
-CountriesBorders.polyareas(r::AbstractRegion) = polyareas(r.domain)
-function CountriesBorders.polyareas(r::LatBeltRegion) 
+# This extracts a Box as the borders of the LatBeltRegion
+function CountriesBorders.borders(crs::VALID_CRS, r::LatBeltRegion) 
     lo, hi = r.lim
     # We have to reduce the box to exclude the bounds of the region to keep the behavior of the current LatBeltRegion
+    f = crs == LatLon ? to_latlon_point : to_cart_point
     lo = ustrip(lo) |> Float32 |> nextfloat
     hi = ustrip(hi) |> Float32 |> prevfloat
-    f(ll) = to_cart_point(ll, Float32)
-    # We make this not just 4 points to have plotting with scattergeo not result in very ugly thing. We anyhow expect this not to be a problem for the speed of `in`
-    pts = reduce(vcat, (
-        [LatLon(hi, lon) |> f for lon in range(-180, 180; step = 5)],
-        [LatLon(lat, 180) |> f for lat in range(hi, lo; step = -1)],
-        [LatLon(lo, lon) |> f for lon in range(180, -180; step = -5)],
-        [LatLon(lat, -180) |> f for lat in range(lo, hi; step = 1)],
-    ))
-    p = PolyArea(pts[1:end-1])
+    b = Box(
+        f(LatLon(lo, -180)),
+        f(LatLon(hi, 180)),
+    )
+end
+
+# polyareas
+function CountriesBorders.polyareas(b::BoxBorder)
+    p = box_to_poly_oversample(borders(Cartesian, b))
+    return (p, )
+end
+CountriesBorders.polyareas(r::AbstractRegion) = polyareas(r.domain)
+function CountriesBorders.polyareas(r::LatBeltRegion) 
+    b = borders(Cartesian, r)
+    p = box_to_poly_oversample(b)
     return (p, )
 end
 
 # bboxes
+CountriesBorders.bboxes(b::BoxBorder) = (b.cart, )
 CountriesBorders.bboxes(r::AbstractRegion) = bboxes(r.domain)
-function CountriesBorders.bboxes(r::LatBeltRegion)
-    lo, hi = r.lim
-    # We have to reduce the box to exclude the bounds of the region to keep the behavior of the current LatBeltRegion
-    lo = ustrip(lo) |> Float32 |> nextfloat
-    hi = ustrip(hi) |> Float32 |> prevfloat
-    return (
-        Box(
-            to_cart_point(LatLon(lo, -180), Float32),
-            to_cart_point(LatLon(hi, 180), Float32),
-        ),
-    )
-end
+CountriesBorders.bboxes(r::LatBeltRegion) = (borders(Cartesian, r), )
 CountriesBorders.bboxes(b::PolyBorder) = (b.bbox,)
 CountriesBorders.bboxes(b::MultiBorder) = b.bboxes
 
@@ -58,11 +57,12 @@ CountriesBorders.bboxes(b::MultiBorder) = b.bboxes
 # //NOTE: Interface choice: no possbility to call Base.in on GeoRegion, PolyRegion, or LatBeltRegion with a Cartesian2D point. This is a safe choice of interface of users.
 for P in (POINT_LATLON, LATLON)
     @eval Base.in(p::$P, r::AbstractRegion) = in_exit_early(p, r)
-    @eval Base.in(p::$P, b::Union{PolyBorder, MultiBorder}) = in_exit_early(p, b)
+    @eval Base.in(p::$P, b::BorderGeometry) = in_exit_early(p, b)
 end
 
 # LatBeltRegion()
-CountriesBorders.in_exit_early(p, llr::LatBeltRegion) = to_cart_point(p, Float32) in only(bboxes(llr))
+CountriesBorders.in_exit_early(p, llr::LatBeltRegion) = to_cart_point(Float32, p) in borders(Cartesian, llr)
+CountriesBorders.in_exit_early(p, b::BoxBorder{P}) where P = to_cart_point(P, p) in borders(Cartesian, b)
 
 ## centroid()
 # Define ad-hoc methods for GeoRegion - using centroid definition of CountriesBorders.jl

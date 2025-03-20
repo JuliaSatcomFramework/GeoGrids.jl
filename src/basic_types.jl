@@ -11,7 +11,40 @@ const constants = (
 )
 
 """
-    PolyBorder{P} <: Geometry{🌐,LATLON{P}}
+    abstract type BorderGeometry{P} <: Geometry{🌐,LATLON{P}} end
+
+Abstract type for all border geometries.
+"""
+abstract type BorderGeometry{P} <: Geometry{🌐,LATLON{P}} end
+
+"""
+    BoxBorder{P} <: BorderGeometry{P}
+
+Struct representing a Box in both LatLon and Cartesian coordinates.
+
+Fields:
+- `latlon::BOX_LATLON{P}`: The borders in LatLon CRS
+- `cart::BOX_CART{P}`: The borders in Cartesian2D CRS
+
+Where `P` is the machine type (e.g., Float32, Float64) for the coordinates.
+"""
+struct BoxBorder{P} <: BorderGeometry{P}
+    latlon::BOX_LATLON{P}
+    cart::BOX_CART{P}
+end
+function BoxBorder(lo::Union{LATLON, POINT_LATLON}, hi::Union{LATLON, POINT_LATLON})
+    f = to_latlon_point
+    Box(f(lo), f(hi)) |> BoxBorder
+end
+function BoxBorder(latlon::BOX_LATLON)
+    # We force Float32 as machine type by default, one can still use the full constructor to specify a different machine type
+    ll = latlon_geometry(Float32, latlon)
+    cart = cartesian_geometry(Float32, latlon)
+    BoxBorder(ll, cart)
+end
+
+"""
+    PolyBorder{P} <: BorderGeometry{P}
 
 Struct representing a PolyArea in both LatLon and Cartesian coordinates.
 
@@ -19,9 +52,9 @@ Fields:
 - `latlon::POLY_LATLON{P}`: The borders in LatLon CRS
 - `cart::POLY_CART{P}`: The borders in Cartesian2D CRS
 
-Where `P` is the precision type (e.g., Float32, Float64) for the coordinates.
+Where `P` is the machine type (e.g., Float32, Float64) for the coordinates.
 """
-struct PolyBorder{P} <: Geometry{🌐,LATLON{P}}
+struct PolyBorder{P} <: BorderGeometry{P}
     latlon::POLY_LATLON{P}
     cart::POLY_CART{P}
     bbox::BOX_CART{P}
@@ -34,7 +67,7 @@ function PolyBorder(latlon::POLY_LATLON, cart::POLY_CART)
 end
 
 """
-    MultiBorder{P} <: Geometry{🌐,LATLON{P}}
+    MultiBorder{P} <: BorderGeometry{P}
 
 Struct representing a Multi in both LatLon and Cartesian coordinates.
 
@@ -44,7 +77,7 @@ Fields:
 
 Where `P` is the precision type (e.g., Float32, Float64) for the coordinates.
 """
-struct MultiBorder{P} <: Geometry{🌐,LATLON{P}}
+struct MultiBorder{P} <: BorderGeometry{P}
     latlon::MULTI_LATLON{P}
     cart::MULTI_CART{P}
     bboxes::Vector{BOX_CART{P}}
@@ -185,7 +218,7 @@ struct HotSpotRegion{P} <: AbstractRegion
     domain::PolyBorder{P}
 end
 function HotSpotRegion(; name::String, center::Union{LATLON, POINT_LATLON}, radius::Number)
-    c = center isa LATLON ? Point(center) : center
+    c = to_latlon_point(center)
     circ_poly = gen_circle_pattern(c, radius; n = 51) |> only
     domain = PolyBorder(circ_poly[1:end-1] |> PolyArea)
     return HotSpotRegion{floattype(c)}(name, c, radius, domain)
@@ -212,13 +245,13 @@ The constructor takes a vector of polyareas, Multi, or other AbstractRegions and
     domain::MultiBorder{P}
 end
 function MultiRegion(areas::Vector; name::String)
+    # We assume the machine type to be the one of the first area
+    T = floattype(first(areas))
     # We convert all polygons to Float32 machine precision
-    f(reg) = Iterators.map(change_floattype(Float32), polyareas(reg))
-    f(reg::Union{POLY_LATLON, MULTI_LATLON}) = cartesian_geometry(reg) |> f
+    f(reg) = Iterators.map(change_geometry(LatLon, T), polyareas(reg))
 
-    multi_cart = Iterators.flatten((f(area) for area in areas)) |> Multi
-    multi_latlon = latlon_geometry(multi_cart)
-    domain = MultiBorder(multi_latlon, multi_cart)
+    multi_latlon = Iterators.flatten((f(area) for area in areas)) |> Multi
+    domain = MultiBorder(multi_latlon)
     return MultiRegion(name, domain)
 end
 
