@@ -245,10 +245,10 @@ The constructor takes a vector of polyareas, Multi, or other AbstractRegions and
     domain::MultiBorder{P}
 end
 function MultiRegion(areas::Vector; name::String)
-    # We assume the machine type to be the one of the first area
-    T = floattype(first(areas))
-    # We convert all polygons to Float32 machine precision
+    # We convert all polygons to Float32 machine precision, use the full constructor to create a different machine type
+    T = Float32
     f(reg) = Iterators.map(change_geometry(LatLon, T), polyareas(reg))
+    f(reg::Geometry) = (change_geometry(LatLon, T, reg), )
 
     multi_latlon = Iterators.flatten((f(area) for area in areas)) |> Multi
     domain = MultiBorder(multi_latlon)

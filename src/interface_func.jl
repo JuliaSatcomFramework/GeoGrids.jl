@@ -80,7 +80,8 @@ Meshes.centroid(d::AbstractRegion) = centroid(Cartesian, d)
 CountriesBorders.extract_countries(r::GeoRegion) = r.domain
 
 ## geom_iterable, used by extract_plot_coords
-CountriesBorders.geom_iterable(b::Union{PolyBorder, MultiBorder}) = geom_iterable(borders(LatLon, b))
+CountriesBorders.geom_iterable(b::BorderGeometry) = geom_iterable(borders(LatLon, b))
+CountriesBorders.geom_iterable(b::BoxBorder) = polyareas(b) # The box is not directly supported
 
 CountriesBorders.geom_iterable(r::AbstractRegion) = geom_iterable(r.domain)
 CountriesBorders.geom_iterable(r::LatBeltRegion) = polyareas(r)
