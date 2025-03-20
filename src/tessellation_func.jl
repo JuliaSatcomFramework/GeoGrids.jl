@@ -320,7 +320,7 @@ function _hex_tesselation_centroids(origin::Point{🌐,<:LatLon{WGS84Latest}}, r
         new = _add_angular_offset(centreθφ, offsetθφ)
 
         lat, lon = _wrap_latlon(π / 2 - new.θ |> rad2deg, new.ϕ |> rad2deg)
-        LatLon{WGS84Latest}(lat, lon) |> Point
+        to_latlon_point(LatLon(lat, lon))
     end
 
     return newLattice[:]
@@ -444,27 +444,23 @@ used to generate the patterns.
 function.
 
 ## Returns
-- `Vector{Vector{LatLon}}`: A vector where each element is a vector of `LatLon` \
+- `Vector{Vector{<:POINT_LATLON}}`: A vector where each element is a vector of `LatLon` \
 points representing the vertices of the polygons (typically hexagons) for each \
 center point.
 """
-function gen_hex_pattern(filtered::AbstractVector{<:Point{🌐,<:LatLon{WGS84Latest}}}, idxs::AbstractVector{<:Number}, mesh::SimpleMesh)
+function gen_hex_pattern(filtered::AbstractVector{<:POINT_LATLON}, idxs::AbstractVector{<:Number}, mesh::SimpleMesh)
     # hexagons = [fill(LatLon(0, 0), 7) for i in 1:length(filtered)]
     # hexagons = [Point[] for i in 1:length(filtered)] # Allow to have different polygons from hexagons only (depending on Voronoi tesselation)
-    hexagons = [Point{🌐,LatLon{WGS84Latest}}[] for i in 1:length(filtered)] # Allow to have different polygons from hexagons only (depending on Voronoi tesselation)
+    # hexagons = [Point{🌐,LatLon{WGS84Latest}}[] for i in 1:length(filtered)] # Allow to have different polygons from hexagons only (depending on Voronoi tesselation)
     
-    for (p, poly) in enumerate(mesh[idxs])
-        # for (v, vertex) in enumerate([poly.vertices..., poly.vertices[1]]) # Loop through vertices to create the hexagon for plotting)
-        #     hexagons[p][v] = LatLon(ustrip(vertex.coords.y), ustrip(vertex.coords.x))
-        # end
-        hexagons[p] = map([poly.vertices..., poly.vertices[1]]) do vertex # Loop through vertices to create the hexagon for plotting)
-            # LatLon{WGS84Latest}(ustrip(vertex.coords.y), ustrip(vertex.coords.x)) |> Point
-            Point{🌐,LatLon{WGS84Latest}}(LatLon(ustrip(vertex.coords.y), ustrip(vertex.coords.x)))
-        end
+    map(idxs) do idx
+        ngon = mesh[idx]
+        ngon_points = map(to_latlon_point, ngon.vertices)
+        # We copy the first point 
+        [ngon_points..., first(ngon_points)]
     end
-
-    return hexagons
 end
+
 gen_hex_pattern(p::Point{🌐,<:LatLon{WGS84Latest}}, idx::Number, mesh::SimpleMesh) = gen_hex_pattern([p], [idx], mesh)
 # Utility for the user which can call the function using directly centers expressed in LatLon.
 gen_hex_pattern(filtered::AbstractVector{<:LatLon}, idxs::AbstractVector{<:Number}, mesh::SimpleMesh) = gen_hex_pattern(map(x -> Point(x), filtered), idxs, mesh)
