@@ -32,6 +32,11 @@ end
     # Single Point
     @test plot_geo_cells(centers) isa Plot
     @test plot_geo_cells(centers[1]) isa Plot
+
+    # Check colors
+    colors = color_greedy(centers, 40000, 4)
+    plt = plot_geo_cells(centers, ngon; colors)
+    @test length(plt.data) == 5
 end
 
 @testitem "plot_geo_poly" tags = [:general] begin
