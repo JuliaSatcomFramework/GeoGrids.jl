@@ -158,6 +158,24 @@ end
     @test LatLon(-40, 10) in mr
 end
 
+@testitem "ClippedRegion" tags = [:interface] begin
+    eu = GeoRegion(; continent="Europe")
+    box1 = BoxBorder(LatLon(0, 0), LatLon(90, 99))
+    box2 = BoxBorder(LatLon(0, 99), LatLon(90, 180))
+    p1 = LatLon(60, 100) # This is in Russia
+    p2 = LatLon(10, 100) # This is box2 but not in Europe
+
+    @test p2 in box2
+    @test p1 in eu
+    cr = ClippedRegion(eu, box1)
+    @test cr isa ClippedRegion
+    @test p1 ∉ cr
+
+    cr = ClippedRegion(eu, box2)
+    @test p1 in cr
+    @test p2 ∉ cr
+end
+
 ## Helpers
 @testitem "Helper Functions" tags = [:general] begin
     r = GeoRegion(name="ITA", admin="Italy")
