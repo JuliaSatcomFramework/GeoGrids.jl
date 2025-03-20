@@ -17,6 +17,8 @@ using NearestNeighbors: always_false, check_k, knn_point!, inrange_point!, check
 using PlotlyExtensionsHelper
 using StaticArrays
 using Unitful: °, rad, Quantity, Length, @u_str, ustrip
+import Graphs
+using SimpleWeightedGraphs
 
 include("basic_types.jl")
 include("distances.jl")
@@ -49,6 +51,9 @@ export icogrid, rectgrid, vecgrid,
 export °, rad, ustrip,
     LatLon, Cartesian, WGS84Latest, coords, PolyArea, Point,
     SVector
+
+include("coloring.jl")
+export color_greedy
 
 end # module GeoGrids 
 
