@@ -217,7 +217,7 @@ struct HotSpotRegion{P} <: AbstractRegion
     "Polygon identifying the polygon in latlon which represents a _circle_ of specified radius from the center"
     domain::PolyBorder{P}
 end
-function HotSpotRegion(; name::String, center::Union{LATLON, POINT_LATLON}, radius::Number)
+function HotSpotRegion(; name::String = "", center::Union{LATLON, POINT_LATLON}, radius::Number)
     c = to_latlon_point(center)
     circ_poly = gen_circle_pattern(c, radius; n = 51) |> only
     domain = PolyBorder(circ_poly[1:end-1] |> PolyArea)
@@ -244,7 +244,7 @@ The constructor takes a vector of polyareas, Multi, or other AbstractRegions and
     "List of Polygons identifying the various regions included in the multi region"
     domain::MultiBorder{P}
 end
-function MultiRegion(areas::Vector; name::String)
+function MultiRegion(areas::Vector; name::String = "")
     # We convert all polygons to Float32 machine precision, use the full constructor to create a different machine type
     T = Float32
     f(reg) = Iterators.map(change_geometry(LatLon, T), polyareas(reg))
@@ -286,7 +286,7 @@ struct ClippedRegion{P} <: AbstractRegion
     domain::MultiBorder{P}
 end
 
-function ClippedRegion(original, mask::Union{BoxBorder{P}, PolyBorder{P}}; name::String) where P
+function ClippedRegion(original, mask::Union{BoxBorder{P}, PolyBorder{P}}; name::String = "") where P
     domain = clipped_multiborder(original, mask)
     return ClippedRegion{P}(name, original, mask, domain)
 end
