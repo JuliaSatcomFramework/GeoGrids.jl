@@ -61,7 +61,11 @@ for P in (POINT_LATLON, LATLON)
 end
 
 # LatBeltRegion()
-CountriesBorders.in_exit_early(p, llr::LatBeltRegion) = to_cart_point(Float32, p) in borders(Cartesian, llr)
+function CountriesBorders.in_exit_early(p, llr::LatBeltRegion)
+    lo, hi = llr.lim
+    (; lat) = to_latlon_point(p) |> coords
+    return lo < lat < hi
+end
 CountriesBorders.in_exit_early(p, b::BoxBorder{P}) where P = to_cart_point(P, p) in borders(Cartesian, b)
 
 ## centroid()
