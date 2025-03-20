@@ -92,10 +92,40 @@ function _add_angular_offset(inputθϕ, offsetθϕ)
     return (θ=θ, ϕ=ϕ) # [deg] ALBERTO: ?? Is it deg though? as the acos and atan return values in radians
 end
 
-# This is a function that will force a POLY_CART to have a specific machine type
-function change_floattype(poly::POLY_CART, T::Type{<:Real})
-    map(rings(poly)) do r
-        map(p -> to_cart_point(p, T), vertices(r)) |> Ring
-    end |> splat(PolyArea)
+# This function takes a box and constructs the corresponding PolyArea by oversampling the lon to avoid artifacts while displaying the PolyArea on scattergeo
+function box_to_poly_oversample(b::Union{BOX_CART, BOX_LATLON}, lon_dist = 5)
+	lo, hi = extrema(b) .|> coords .|> CoordRefSystems.raw
+    lo_lon, lo_lat = lo
+    hi_lon, hi_lat = hi
+    f = to_cart_point
+	Δlon = hi_lon - lo_lon
+    # We have points in lon distanced by around 5° mostly to avoid problems in plotting on scattergeo
+    nlon = max(2, ceil(Int, Δlon / lon_dist))
+	hi_gen = [f(LatLon(hi_lat, lon)) for lon in range(lo_lon, hi_lon, nlon)]
+	lo_gen = [f(LatLon(lo_lat, lon)) for lon in range(hi_lon, lo_lon, nlon)]
+    p = Ring(vcat(hi_gen, lo_gen)) |> PolyArea
 end
-change_floattype(T::Type{<:Real}) = p -> change_floattype(p, T)
+
+# This function is used to take a MULTI_CART or Region and a clipping mask and create a MultiBorder obtained by clipping with the mask using the Sutherland-Hodgman algorithm
+function clipped_multiborder(original::MULTI_CART{P}, mask::Union{BoxBorder{P}, PolyBorder{P}}) where P
+    # We iterate over all polygons, converting everything to Float32 precision
+    clipped_polys = POLY_CART{P}[]
+    for poly in polyareas(original)
+        clipped = Meshes.clip(poly, mask.cart, Meshes.SutherlandHodgmanClipping())
+        if !isnothing(clipped)
+            push!(clipped_polys, clipped)
+        end
+    end
+    isempty(clipped_polys) && error("No polygons left after clipping...")
+    # We create a Multi from the clipped polygons
+    multi_cart = Multi(clipped_polys)
+    multi_latlon = latlon_geometry(multi_cart)
+    domain = MultiBorder(multi_latlon, multi_cart)
+end
+function clipped_multiborder(original::MULTI_CART, mask::Union{BoxBorder{P}, PolyBorder{P}}) where P
+    clipped_multiborder(cartesian_geometry(P, original), mask)
+end
+function clipped_multiborder(original, mask::Union{BoxBorder{P}, PolyBorder{P}}) where P
+    multi = polyareas(original) |> Multi
+    clipped_multiborder(multi, mask)
+end

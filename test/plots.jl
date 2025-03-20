@@ -32,6 +32,11 @@ end
     # Single Point
     @test plot_geo_cells(centers) isa Plot
     @test plot_geo_cells(centers[1]) isa Plot
+
+    # Check colors
+    colors = color_greedy(centers, 40000, 4)
+    plt = plot_geo_cells(centers, ngon; colors)
+    @test length(plt.data) == 5
 end
 
 @testitem "plot_geo_poly" tags = [:general] begin
@@ -79,4 +84,11 @@ end
 
     # This is just a coverage test and sanity check to spot errors. It is not really testing functionality
     @test scattergeo(offset_region) == scattergeo(offset_region.domain)
+
+    # Let's do some stupid coverage tests for some plotting functions
+    box = BoxBorder(LatLon(0, 0), LatLon(1, 1))
+    llr = LatBeltRegion("test", (0, 1))
+
+    @test_nowarn scattergeo(box)
+    @test_nowarn scattergeo(llr)
 end

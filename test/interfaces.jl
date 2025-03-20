@@ -158,8 +158,54 @@ end
     @test LatLon(-40, 10) in mr
 end
 
+@testitem "ClippedRegion" tags = [:interface] begin
+    using GeoGrids: PolyArea
+    eu = GeoRegion(; continent="Europe")
+    box1 = BoxBorder(LatLon(0, 0), LatLon(90, 99))
+    box2 = BoxBorder(LatLon(0, 99), LatLon(90, 180))
+    p1 = LatLon(60, 100) # This is in Russia
+    p2 = LatLon(10, 100) # This is box2 but not in Europe
+
+    @test p2 in box2
+    @test p1 in eu
+    cr = ClippedRegion(eu, box1)
+    @test cr isa ClippedRegion
+    @test p1 ∉ cr
+
+    cr = ClippedRegion(eu, box2)
+    @test p1 in cr
+    @test p2 ∉ cr
+
+    # We test the conversion to the type of the mask
+    p = PolyBorder(rand(PolyArea; crs = LatLon))
+    box = BoxBorder(LatLon(-90, -180), LatLon(90, 180))
+    cr = ClippedRegion(p, box)
+    @test p isa PolyBorder{Float64}
+    @test box isa BoxBorder{Float32}
+    @test cr isa ClippedRegion{Float32}
+end
+
 ## Helpers
 @testitem "Helper Functions" tags = [:general] begin
     r = GeoRegion(name="ITA", admin="Italy")
     @test extract_countries(r) == r.domain
+end
+
+@testitem "CountriesBorders methods" tags = [:interface] begin
+    using GeoGrids: floattype, bboxes, polyareas, borders, POLY_CART, BOX_CART
+
+    r = GeoRegion(name="ITA", admin="Italy")
+    llr = LatBeltRegion(; name = "llr", lim = (-30°, -29°))
+    box = BoxBorder(LatLon(0, 0), LatLon(90, 99))
+
+    @test floattype(r) == Float32
+    @test floattype(llr) == Float64
+    @test floattype(box) == Float32
+
+    for g in (r, llr, box)
+        @test collect(polyareas(g)) isa Vector{<:POLY_CART}
+        @test collect(bboxes(g)) isa Vector{<:BOX_CART}
+    end
+
+    @test centroid(box) == centroid(borders(Cartesian, box))
 end

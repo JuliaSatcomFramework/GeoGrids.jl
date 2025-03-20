@@ -8,12 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 ### Added
-- Two new subtypes of `AbstractRegion` have been added (check docstrings for more details):
+- Added a new `color_greedy` function to color a set of points with a greedy algorithm, useful for assigning colors to cells which are not located on a regular grid.
+- Three new subtypes of `AbstractRegion` have been added (check docstrings for more details):
   - `HotspotRegion` which is a region representing all points within a certain distance (radius) of a point.
   - `MultiRegion` which is a region encompassing multiple polyareas, and that can be constructed with a vector of `AbstractRegion`s as input.
+  - `ClippedRegion` which is a region obtained by clipping another region with a mask.
+- Added a new `BoxBorder` type, which expands the concept of `PolyBorder` and `MultiBorder` to the `Box` type from Meshes.jl
+- Added a new abstract type `BorderGeometry{P} <: Geometry{🌐,LATLON{P}}` which is a supertype of `PolyBorder`, `MultiBorder` and `BoxBorder`. This is mostly to simplify dispatch of various methods.
 
 ### Changed
-- The `LatBeltRegion` now has the lim field which is a `NTuple{2, Deg{Float32}}` to be concrete and has an implementation of `bboxes` and `polyareas` to simpify plotting and inclusion within a `MultiRegion`.
+- Changed the implementation of `offset_region` to be more generic and simplified, without multiple methods for GeoRegion and PolyRegion as they were already doing basically the same thing.
+- The `LatBeltRegion` now has the lim field which is a `NTuple{2, Deg{Float64}}` to be concrete and has an implementation of `bboxes` and `polyareas` to simpify plotting and inclusion within a `MultiRegion`.
+
+### Fixed
+- Fixed the tessellation function returning vectors with abstract eltype
 
 ## [0.5.7] - 2025-03-08
 
