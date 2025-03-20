@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 ### Added
+- Added a new `color_greedy` function to color a set of points with a greedy algorithm, useful for assigning colors to cells which are not located on a regular grid.
 - Three new subtypes of `AbstractRegion` have been added (check docstrings for more details):
   - `HotspotRegion` which is a region representing all points within a certain distance (radius) of a point.
   - `MultiRegion` which is a region encompassing multiple polyareas, and that can be constructed with a vector of `AbstractRegion`s as input.
