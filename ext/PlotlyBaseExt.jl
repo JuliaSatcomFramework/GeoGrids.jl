@@ -142,20 +142,31 @@ polygons, where each polygon is represented by a vector of `LatLon` \
 objects. Each `LatLon` object holds latitude and longitude information.
 
 ## Keyword Arguments
+- `colors::Union{AbstractVector{<:Integer},Nothing}`: A vector of integers representing the color index of each cell. If `nothing`, all will be colored in the same color.
 - `kwargs...`: Additional keyword arguments to customize the scatter plot. These \
 are passed directly to the `scattergeo` function, allowing customization of \
 the plot's appearance (e.g., color, line style, marker options).
 
 ## Returns
-- A `scattergeo` plot object: The scatter plot visualization of the cell \
+- A vector of `scattergeo` plot objects: The scatter plot visualization of the cell \
 contours, ready for rendering in a geographic plot.
 """
-function GeoGrids._get_scatter_cellcontour(polygons::AbstractVector{<:AbstractVector{<:VALID_COORD}}; kwargs...)
-    return scattergeo(;
-        plot_coords(polygons)...,
-        DEFAULT_CELL_CONTOUR...,
-        kwargs...
-    )
+function GeoGrids._get_scatter_cellcontour(polygons::AbstractVector{<:AbstractVector{<:VALID_COORD}}; colors, kwargs...)
+    function f(polys; color = nothing) 
+        cc = isnothing(color) ? DEFAULT_CELL_CONTOUR : attr(; DEFAULT_CELL_CONTOUR..., marker_color=color)
+        scattergeo(;
+            plot_coords(polys)...,
+            cc...,
+            kwargs...
+        )
+    end
+    isnothing(colors) && return [f(polygons)]
+    # We have more colors
+    @assert length(colors) == length(polygons) "You have a different number of colors and polygons."
+    map(unique(colors)) do c
+        polys = polygons[findall(==(c), colors)]
+        f(polys; color=DEFAULT_COLORS[c])
+    end
 end
 
 """
@@ -317,7 +328,7 @@ GeoGrids.plot_geo_cells(cc::VALID_COORD; kwargs...) = GeoGrids.plot_geo_points([
 
 function GeoGrids.plot_geo_cells(cellCenters::AbstractVector{<:VALID_COORD}, cellContours::AbstractVector{<:AbstractVector{<:VALID_COORD}}; title="Cell Layout GEO Map", colors::Union{AbstractVector{<:Integer},Nothing}=nothing, camera::Symbol=:twodim, kwargs_centers=(;), kwargs_contours=(;), kwargs_layout=(;))
     # Create scatter plot for the cells contours.
-    scatterContours = GeoGrids._get_scatter_cellcontour(cellContours; kwargs_contours...)
+    scatterContours = GeoGrids._get_scatter_cellcontour(cellContours; colors, kwargs_contours...)
 
     # Create scatter plot for the cell centers.
     
@@ -328,7 +339,7 @@ function GeoGrids.plot_geo_cells(cellCenters::AbstractVector{<:VALID_COORD}, cel
     # Create layout
     layout = _default_geolayout(; title, camera, kwargs_layout...)
 
-    plotly_plot([scatterContours, scatterCenters], layout)
+    plotly_plot([scatterContours..., scatterCenters], layout)
 end
 GeoGrids.plot_geo_cells(cellCenter::VALID_COORD, cellContour::AbstractVector{<:VALID_COORD}; kwargs...) = GeoGrids.plot_geo_cells([cellCenter], [cellContour]; kwargs...)
 
