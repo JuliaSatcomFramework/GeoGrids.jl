@@ -56,6 +56,24 @@ const DEFAULT_GEOLAYOUT = (;
     )
 )
 
+const DEFAULT_COLORS = [
+    "rgb(230, 25, 75)",   # Red
+    "rgb(60, 180, 75)",   # Green
+    "rgb(255, 225, 25)",  # Yellow
+    "rgb(0, 130, 200)",   # Blue
+    "rgb(245, 130, 48)",  # Orange
+    "rgb(145, 30, 180)",  # Purple
+    "rgb(70, 240, 240)",  # Cyan
+    "rgb(240, 50, 230)",  # Magenta
+    "rgb(210, 245, 60)",  # Lime
+    "rgb(250, 190, 190)", # Pink
+    "rgb(0, 128, 128)",   # Teal
+    "rgb(230, 190, 255)", # Lavender
+    "rgb(170, 110, 40)",  # Brown
+    "rgb(255, 250, 200)", # Beige
+    "rgb(128, 128, 128)"  # Grey
+]
+
 ## Auxiliary Functions
 # Internal functions for creating the scatter plots.
 """
@@ -112,7 +130,7 @@ the plot's appearance (e.g., color, line style, marker options).
 - A `scattergeo` plot object: The scatter plot visualization of the cell \
 contours, ready for rendering in a geographic plot.
 """
-function GeoGrids._get_scatter_cellcontour(polygons::AbstractVector{<:AbstractVector{<:Union{LatLon,Point{🌐,<:LatLon{WGS84Latest}}}}}; kwargs...)
+function GeoGrids._get_scatter_cellcontour(polygons::AbstractVector{<:AbstractVector{<:Union{LatLon,Point{🌐,<:LatLon{WGS84Latest}}}}}; colors, kwargs...)
     # Extract scatter plot from mesh.
     polygonsTrace = []
     for ngon in polygons
@@ -291,12 +309,14 @@ function GeoGrids.plot_geo_cells(cellCenters::AbstractVector{<:Union{LatLon,Poin
 end
 GeoGrids.plot_geo_cells(cc::Union{LatLon,Point{🌐,<:LatLon{WGS84Latest}}}; kwargs...) = GeoGrids.plot_geo_points([cc]; kwargs...)
 
-function GeoGrids.plot_geo_cells(cellCenters::AbstractVector{<:Union{LatLon,Point{🌐,<:LatLon{WGS84Latest}}}}, cellContours::AbstractVector{<:AbstractVector{<:Union{LatLon,Point{🌐,<:LatLon{WGS84Latest}}}}}; title="Cell Layout GEO Map", camera::Symbol=:twodim, kwargs_centers=(;), kwargs_contours=(;), kwargs_layout=(;))
+function GeoGrids.plot_geo_cells(cellCenters::AbstractVector{<:Union{LatLon,Point{🌐,<:LatLon{WGS84Latest}}}}, cellContours::AbstractVector{<:AbstractVector{<:Union{LatLon,Point{🌐,<:LatLon{WGS84Latest}}}}}; title="Cell Layout GEO Map", colors::Union{AbstractVector{<:Integer},Nothing}=nothing, camera::Symbol=:twodim, kwargs_centers=(;), kwargs_contours=(;), kwargs_layout=(;))
     # Create scatter plot for the cells contours.
-    scatterContours = GeoGrids._get_scatter_cellcontour(cellContours; kwargs_contours...)
+    scatterContours = GeoGrids._get_scatter_cellcontour(cellContours; colors, kwargs_contours...)
 
     # Create scatter plot for the cell centers.
-    k = (; DEFAULT_CELL_CENTER..., text=map(x -> string(x), 1:length(cellCenters)), kwargs_centers...) # Default for text mode for cellCenters
+    
+    fontColors = colors === nothing ? (;) : (;textfont_color=map(x -> DEFAULT_COLORS[x], colors))
+    k = (; DEFAULT_CELL_CENTER..., text=map(x -> string(x), 1:length(cellCenters)), fontColors..., kwargs_centers...) # Default for text mode for cellCenters
     scatterCenters = GeoGrids._get_scatter_points(cellCenters; k...)
 
     # Create layout
