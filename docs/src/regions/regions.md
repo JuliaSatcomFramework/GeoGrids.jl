@@ -82,7 +82,7 @@ to_documenter(plot) # hide
 
 ```@example plot
 region = HotSpotRegion(center=LatLon(30, 40), radius=1000e3)
-plot = scattergeo(region) |> Plot
+plot = plot_geo_poly(region; title = "HotSpotRegion", kwargs_layout=(;geo_fitbounds="locations"))
 to_documenter(plot) # hide
 ```
 
@@ -94,7 +94,7 @@ to_documenter(plot) # hide
 hr = HotSpotRegion(center=LatLon(30, 40), radius=1000e3)
 italy = GeoRegion(;admin="Italy")
 mr = MultiRegion([hr, italy])
-plot = scattergeo(mr) |> Plot
+plot = plot_geo_poly(mr; title = "MultiRegion", kwargs_layout=(;geo_fitbounds="locations"))
 to_documenter(plot) # hide
 ```
 
@@ -106,7 +106,7 @@ to_documenter(plot) # hide
 box = BoxBorder(LatLon(30, 10), LatLon(45, 35)) # We only keep the portions of the regions that are between 30-45 latitude and 10-35 longitude
 reg = GeoRegion(;continent = "Europe")
 cr = ClippedRegion(reg, box)
-plot = scattergeo(cr) |> Plot
+plot = plot_geo_poly(cr; title = "Clipped Region", kwargs_layout=(;geo_fitbounds="locations"))
 to_documenter(plot) # hide
 ```
 
