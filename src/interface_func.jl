@@ -34,15 +34,11 @@ function CountriesBorders.borders(crs::VALID_CRS, r::LatBeltRegion)
 end
 
 # polyareas
-function CountriesBorders.polyareas(b::BoxBorder)
-    p = box_to_poly_oversample(borders(Cartesian, b))
-    return (p, )
-end
+CountriesBorders.polyareas(b::BoxBorder) = polyareas(b.cart)
 CountriesBorders.polyareas(r::AbstractRegion) = polyareas(r.domain)
 function CountriesBorders.polyareas(r::LatBeltRegion) 
     b = borders(Cartesian, r)
-    p = box_to_poly_oversample(b)
-    return (p, )
+    return polyareas(b)
 end
 
 # bboxes

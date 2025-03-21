@@ -5,7 +5,7 @@ using Clipper
 using CoordRefSystems
 using CoordRefSystems: Deg, RevolutionEllipsoid, Cartesian
 using CountriesBorders
-using CountriesBorders: borders, cartesian_geometry, latlon_geometry, change_geometry, geom_iterable, bboxes, polyareas, in_exit_early, to_cart_point, VALID_CRS, floattype, to_latlon_point
+using CountriesBorders: borders, cartesian_geometry, latlon_geometry, change_geometry, geom_iterable, bboxes, polyareas, in_exit_early, to_cart_point, VALID_CRS, floattype, to_latlon_point, to_raw_coords
 using CountriesBorders.GeoTablesConversion: LATLON, CART, POLY_LATLON, POLY_CART, MULTI_LATLON, MULTI_CART, RING_LATLON, RING_CART, POINT_LATLON, BOX_CART, DOMAIN, BOX_LATLON
 using Dictionaries
 using Distances: Distances, Metric, result_type
