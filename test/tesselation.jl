@@ -319,6 +319,19 @@ end
     end
 end
 
+@testitem "Misc coverage" begin
+    using GeoGrids: gen_circle_pattern, get_lat
+
+    # We test wrapping around poles
+    pts = gen_circle_pattern(LatLon(90, 0), 1000e3) |> first
+    lat = get_lat(first(pts))
+    @test all(p -> get_lat(p) ≈ lat, pts)
+
+    pts = gen_circle_pattern(LatLon(-90, 0), 1000e3) |> first
+    lat = get_lat(first(pts))
+    @test all(p -> get_lat(p) ≈ lat, pts)
+end
+
 @testitem "Test missing Functions" tags = [:tesselation] begin
     reg = GlobalRegion()
     @test_throws "H3 tassellation is not yet implemented in this version..." generate_tesselation(reg, 10.0, H3())

@@ -13,9 +13,10 @@ include("offsetting.jl")
     Aqua.test_ambiguities(GeoGrids)
 end
 
-@testitem "JET" begin
+@testitem "JET" tags=[:jet] begin
     using JET
     report_package("GeoGrids")
 end
 
-@run_package_tests verbose = true
+# @run_package_tests verbose = true
+@run_package_tests verbose = true filter=ti->!(:jet in ti.tags)

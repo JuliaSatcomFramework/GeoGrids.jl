@@ -69,12 +69,25 @@ end
     multi_border = MultiBorder(multi)
     @test plot_geo_poly(multi_border) isa Plot
 
+    p1 = plot_geo_poly(multi_border)
+    p2 = plot_geo_poly(multi_border, single_trace=true)
+    @test length(p1.data) > length(p2.data)
+
     # Test with different camera views
     @test plot_geo_poly(poly; camera=:threedim) isa Plot
     @test plot_geo_poly(polys; camera=:threedim) isa Plot
 
     # Test with custom title and layout options
     @test plot_geo_poly(poly; title="Custom Polygon Plot", kwargs_layout=(width=800, height=600)) isa Plot
+
+    # Test with a box
+    bb = BoxBorder(LatLon(0, 0), LatLon(1, 1))
+    lbr = LatBeltRegion("test", (0, 1))
+    hr = HotSpotRegion( ; center = LatLon(0, 0), radius = 100e3)
+    mr = MultiRegion([lbr, hr, bb])
+    for r in (bb, lbr, hr, mr)
+        @test plot_geo_poly(r) isa Plot
+    end
 end
 
 @testitem "scattergeo" tags = [:plotting] begin
