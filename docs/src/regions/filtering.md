@@ -23,22 +23,6 @@ plot = plot_geo_points(filtered; title="Points Filtered to Equatorial Belt")
 to_documenter(plot) # hide
 ```
 
-## Fast Filtering
-
-For large point sets, GeoGrids.jl provides optimized filtering through `filter_points_fast`:
-
-```julia
-# Create a polygon region
-region = PolyRegion(domain=[
-    LatLon(10°, -5°), 
-    LatLon(10°, 15°), 
-    LatLon(27°, 15°), 
-    LatLon(27°, -5°)
-])
-points = rectgrid(1)[:]  # Dense grid
-filtered = filter_points_fast(points, region)
-```
-
 ## Grouping Points by Region
 
 Sometimes you need to categorize points based on which regions they fall into. The `group_by_domain` function handles this:
