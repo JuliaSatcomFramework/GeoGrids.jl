@@ -16,11 +16,13 @@ indices of the filtered points (wrt the input).
 - A vector of points that fall within the specified domain, subsection of the \
 input vector. The output is of the same type as the input.
 """
-function filter_points(points::AbstractVector{<:Union{LATLON, POINT_LATLON}}, domain::Union{AbstractRegion, PolyBorder, MultiBorder}) 
+function filter_points(points::AbstractVector{<:Union{LATLON, POINT_LATLON}}, domain::Union{AbstractRegion, BorderGeometry}) 
+    domain isa GlobalRegion && return points
     return filter(in(domain), points)
 end
 
-function filter_points(points::AbstractVector{<:Union{LATLON, POINT_LATLON}}, domain::Union{AbstractRegion, PolyBorder, MultiBorder}, ::EO) 
+function filter_points(points::AbstractVector{<:Union{LATLON, POINT_LATLON}}, domain::Union{AbstractRegion, BorderGeometry}, ::EO) 
+    domain isa GlobalRegion && return (points, eachindex(points) |> collect)
     # We can't just use `in(domain)` as function as that goes through a different dispatch method of `findall` which doesn't work
     indices = findall(p -> p in domain, points)
     return points[indices], indices

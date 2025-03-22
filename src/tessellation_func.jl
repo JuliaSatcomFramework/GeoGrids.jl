@@ -97,34 +97,13 @@ See also: [`_adapted_icogrid()`](@ref), [`icogrid()`](@ref),
 [`filter_points()`](@ref), [`GeoRegion`](@ref), [`LatBeltRegion`](@ref),
 [`PolyRegion`](@ref), [`GlobalRegion`](@ref), [`ICO`](@ref)
 """
-function generate_tesselation(region::GlobalRegion, radius::Number, type::ICO; refRadius::Number=constants.Re_mean)
-    return _adapted_icogrid(radius; refRadius, correctionFactor=type.correction)
-end
-
-function generate_tesselation(region::GlobalRegion, radius::Number, type::ICO, ::EO; refRadius::Number=constants.Re_mean)
-    # Generate the tassellation centroids.
-    centroids = _adapted_icogrid(radius; refRadius, correctionFactor=type.correction)
-
-    if type.pattern == :hex # Hexagonal pattern
-        # Create the tasselation from all the centroids.
-        mesh = _tesselate(centroids)
-        # Create the hexagonal pattern from all centroids.
-        hexagons = gen_hex_pattern(centroids, collect(1:length(centroids)), mesh)
-        return centroids, hexagons
-    else # Circular pattern
-        # Create the circular pattern from all the centroids.
-        circles = gen_circle_pattern(centroids, radius; refRadius, n=20)
-        return centroids, circles
-    end
-end
-
-function generate_tesselation(region::Union{LatBeltRegion,GeoRegion,PolyRegion,GeoRegionOffset,PolyRegionOffset}, radius::Number, type::ICO; refRadius::Number=constants.Re_mean)
+function generate_tesselation(region::AbstractRegion, radius::Number, type::ICO; refRadius::Number=constants.Re_mean)
     centroids = _adapted_icogrid(radius; refRadius, correctionFactor=type.correction)
 
     return filter_points(centroids, region)
 end
 
-function generate_tesselation(region::Union{LatBeltRegion,GeoRegion,PolyRegion,GeoRegionOffset,PolyRegionOffset}, radius::Number, type::ICO, ::EO; refRadius::Number=constants.Re_mean)
+function generate_tesselation(region::AbstractRegion, radius::Number, type::ICO, ::EO; refRadius::Number=constants.Re_mean)
     # Generate the tassellation centroids.
     centroids = _adapted_icogrid(radius; refRadius, correctionFactor=type.correction)
 
@@ -145,7 +124,7 @@ function generate_tesselation(region::Union{LatBeltRegion,GeoRegion,PolyRegion,G
     end
 end
 
-function generate_tesselation(region::Union{GlobalRegion,LatBeltRegion,GeoRegion,PolyRegion,GeoRegionOffset,PolyRegionOffset}, radius::Number, type::H3; refRadius::Number=constants.Re_mean)
+function generate_tesselation(::AbstractRegion, radius::Number, type::H3; refRadius::Number=constants.Re_mean)
     error("H3 tassellation is not yet implemented in this version...")
 end
 
@@ -363,7 +342,6 @@ function _tesselate(points::AbstractVector{<:Point{🌐,<:LatLon{WGS84Latest}}},
     converted = map(x -> Meshes.flat(x), points)
     return tesselate(PointSet(converted), method)
 end
-_tesselate(point::Point{🌐,<:LatLon{WGS84Latest}}; kwargs...) = _tesselate([point]; kwargs...)
 
 """
     gen_circle_pattern(centers::AbstractVector{Point{🌐,<:LatLon{WGS84Latest}}}, radius::Number; refRadius::Number=constants.Re_mean, n::Int=20) -> Vector{Vector{Point{🌐,<:LatLon{WGS84Latest}}}
