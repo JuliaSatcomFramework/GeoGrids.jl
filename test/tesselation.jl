@@ -340,4 +340,5 @@ end
     @test_throws "H3 tassellation is not yet implemented in this version..." generate_tesselation(reg, 10.0, H3())
 
     @test_throws ArgumentError generate_tesselation(GlobalRegion(), 10.0, HEX())
+    @test_throws ArgumentError generate_tesselation(GlobalRegion(), 10.0, HEX(), EO())
 end
