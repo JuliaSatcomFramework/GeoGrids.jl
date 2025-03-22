@@ -6,28 +6,11 @@ using Unitful: ustrip
 using Meshes: vertices, rings, Multi, Ngon, 🌐, WGS84Latest
 
 using GeoGrids
-using GeoGrids: MultiBorder, PolyBorder, AbstractRegion, BorderGeometry
-using GeoGrids.CountriesBorders: LATLON, POINT_LATLON, extract_plot_coords, extract_plot_coords!
+using GeoGrids: MultiBorder, PolyBorder, AbstractRegion, BorderGeometry, BoxBorder
+using GeoGrids.CountriesBorders: LATLON, POINT_LATLON, extract_plot_coords, extract_plot_coords!, with_settings, polyareas, cartesian_geometry, borders
+using GeoGrids.CountriesBorders.GeoTablesConversion: POLY_LATLON, MULTI_LATLON, BOX_LATLON
 
 const VALID_COORD = Union{LATLON, POINT_LATLON}
-
-plot_coords(x) = extract_plot_coords(x)
-function plot_coords(ps::AbstractVector{<:VALID_COORD})
-    lat = Float32[]
-    lon = Float32[]
-    extract_plot_coords!(lat, lon, ps)
-    return (; lat, lon)
-end
-function plot_coords(ps::AbstractVector{<:AbstractVector{<:VALID_COORD}})
-    lat = Float32[]
-    lon = Float32[]
-    for pv in ps
-        !isempty(lat) && !isempty(lon) && extract_plot_coords!(lat, lon, LatLon(NaN, NaN))
-        extract_plot_coords!(lat, lon, pv)
-    end
-    return (; lat, lon)
-end
-
 
 const DEFAULT_CELL_CONTOUR = (;
     mode="lines",
@@ -123,7 +106,7 @@ geographic points.
 function GeoGrids._get_scatter_points(points::AbstractVector{<:VALID_COORD}; kwargs...)
     # Markers for the points
     return scattergeo(;
-        plot_coords(points)...,
+        extract_plot_coords(points)...,
         DEFAULT_POINT...,
         kwargs...
     )
@@ -155,7 +138,7 @@ function GeoGrids._get_scatter_cellcontour(polygons::AbstractVector{<:AbstractVe
     function f(polys; color = nothing) 
         cc = isnothing(color) ? DEFAULT_CELL_CONTOUR : attr(; DEFAULT_CELL_CONTOUR..., marker_color=color)
         scattergeo(;
-            plot_coords(polys)...,
+            extract_plot_coords(polys)...,
             cc...,
             kwargs...
         )
@@ -192,12 +175,12 @@ for each.
 - The first and last points of each ring are connected to close the polygon.
 - By default, the lines are colored red and have no legend entry.
 """
-function GeoGrids._get_scatter_poly(poly::PolyArea{🌐,<:LatLon{WGS84Latest}}; kwargs...)
+function GeoGrids._get_scatter_poly(poly::PolyArea; kwargs...)
     # scatter line
     map(rings(poly)) do ring
         # Each ring will be a separate trace.
         scattergeo(;
-            plot_coords(ring)...,
+            extract_plot_coords(ring)...,
             mode="lines",
             line_color="red",
             showlegend=false,
@@ -326,9 +309,9 @@ function GeoGrids.plot_geo_cells(cellCenters::AbstractVector{<:VALID_COORD}; tit
 end
 GeoGrids.plot_geo_cells(cc::VALID_COORD; kwargs...) = GeoGrids.plot_geo_points([cc]; kwargs...)
 
-function GeoGrids.plot_geo_cells(cellCenters::AbstractVector{<:VALID_COORD}, cellContours::AbstractVector{<:AbstractVector{<:VALID_COORD}}; title="Cell Layout GEO Map", colors::Union{AbstractVector{<:Integer},Nothing}=nothing, camera::Symbol=:twodim, kwargs_centers=(;), kwargs_contours=(;), kwargs_layout=(;))
+function GeoGrids.plot_geo_cells(cellCenters::AbstractVector{<:VALID_COORD}, cellContours::AbstractVector{<:AbstractVector{<:VALID_COORD}}; title="Cell Layout GEO Map", colors::Union{AbstractVector{<:Integer},Nothing}=nothing, color_contours = true, camera::Symbol=:twodim, kwargs_centers=(;), kwargs_contours=(;), kwargs_layout=(;))
     # Create scatter plot for the cells contours.
-    scatterContours = GeoGrids._get_scatter_cellcontour(cellContours; colors, kwargs_contours...)
+    scatterContours = GeoGrids._get_scatter_cellcontour(cellContours; colors = color_contours ? colors : nothing, kwargs_contours...)
 
     # Create scatter plot for the cell centers.
     
@@ -376,17 +359,40 @@ functions.
 See also: [`GeoGrids._get_scatter_poly`](@ref), [`_default_geolayout`](@ref),
 [`plot_geo_cells`](@ref)
 """
-function GeoGrids.plot_geo_poly(polys::AbstractVector{<:PolyArea{🌐,<:LatLon{WGS84Latest}}}; title="Polygon GEO Map", camera::Symbol=:twodim, kwargs_scatter=(;), kwargs_layout=(;))
+function GeoGrids.plot_geo_poly(polys; title="Polygon GEO Map", camera::Symbol=:twodim, single_trace::Bool = false, kwargs_scatter=(;), kwargs_layout=(;))
     # Extract the vertices of the polygon
-    scattersPoly = map(x -> GeoGrids._get_scatter_poly(x; kwargs_scatter...) |> splat(vcat), polys) |> splat(vcat)
+    scattersPoly = Iterators.flatmap(polys) do poly 
+        GeoGrids._get_scatter_poly(poly; kwargs_scatter...)
+    end |> collect
+
+    data = if single_trace
+        trace, others... = scattersPoly
+        for tr in others
+            push!(trace.lat, NaN)
+            push!(trace.lon, NaN)
+            append!(trace.lat, tr.lat)
+            append!(trace.lon, tr.lon)
+        end
+        [trace]
+    else
+        scattersPoly
+    end
 
     layout = _default_geolayout(; title, camera, kwargs_layout...)
 
-    plotly_plot([scattersPoly...], layout)
+    plotly_plot(data, layout)
 end
-GeoGrids.plot_geo_poly(poly::PolyArea{🌐,<:LatLon{WGS84Latest}}; kwargs...) = GeoGrids.plot_geo_poly([poly]; kwargs...)
-GeoGrids.plot_geo_poly(multi::Multi{🌐,<:LatLon{WGS84Latest}}; kwargs...) = GeoGrids.plot_geo_poly(multi.geoms; kwargs...)
-GeoGrids.plot_geo_poly(b::Union{<:GeoGrids.PolyBorder,<:GeoGrids.MultiBorder}; kwargs...) = GeoGrids.plot_geo_poly(b.latlon; kwargs...)
+GeoGrids.plot_geo_poly(poly::POLY_LATLON; kwargs...) = GeoGrids.plot_geo_poly([poly]; kwargs...)
+GeoGrids.plot_geo_poly(multi::MULTI_LATLON; kwargs...) = GeoGrids.plot_geo_poly(multi.geoms; kwargs...)
+GeoGrids.plot_geo_poly(box::BOX_LATLON; kwargs...) = with_settings(:PLOT_STRAIGHT_LINES => :NORMAL) do
+    GeoGrids.plot_geo_poly(polyareas(box |> cartesian_geometry); kwargs...)
+end
+GeoGrids.plot_geo_poly(b::BorderGeometry; kwargs...) = GeoGrids.plot_geo_poly(b.latlon; kwargs...)
+GeoGrids.plot_geo_poly(b::AbstractRegion; kwargs...) = GeoGrids.plot_geo_poly(polyareas(b); kwargs...)
+GeoGrids.plot_geo_poly(lbr::LatBeltRegion; kwargs...) = GeoGrids.plot_geo_poly(borders(LatLon, lbr); kwargs...)
+GeoGrids.plot_geo_poly(r::Union{MultiRegion, ClippedRegion}; kwargs...) = with_settings(:PLOT_STRAIGHT_LINES => :NORMAL) do
+    GeoGrids.plot_geo_poly(polyareas(r); kwargs...)
+end
 
 ## Additional Functions
 """

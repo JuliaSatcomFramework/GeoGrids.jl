@@ -116,17 +116,9 @@ The function checks if each point falls inside the given region using the approp
 
 This function filters a vector of points based on whether they fall within a specified region. It returns a new vector containing only the points that are inside the region.
 
-    filter_points_fast(points::AbstractVector{<:Union{LatLon, Point{🌐,<:LatLon{WGS84Latest}}}}, domain::AbstractRegion) -> Vector{eltype(points)}
-
-This is a faster version of `filter_points` that uses a different algorithm for checking point inclusion. It's particularly efficient for large numbers of points.
-
     group_by_domain(points::AbstractVector{<:Union{LatLon, Point{🌐,<:LatLon{WGS84Latest}}}}, domains::AbstractVector{<:AbstractRegion}) -> Dictionary{String, Vector{eltype(points)}}
 
 This function groups points based on which region they belong to. It returns a dictionary where the keys are names of the domains, and the values are vectors of points that fall within each domain.
-
-    group_by_domain_fast(points::AbstractVector{<:Union{LatLon, Point{🌐,<:LatLon{WGS84Latest}}}}, domains::AbstractVector{<:AbstractRegion}) -> Dictionary{String, Vector{eltype(points)}}
-
-This is a faster version of `group_by_domain` that uses the same efficient algorithm as `filter_points_fast`.
 
 ### Examples:
 

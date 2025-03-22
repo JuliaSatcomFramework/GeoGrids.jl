@@ -92,20 +92,6 @@ function _add_angular_offset(inputθϕ, offsetθϕ)
     return (θ=θ, ϕ=ϕ) # [deg] ALBERTO: ?? Is it deg though? as the acos and atan return values in radians
 end
 
-# This function takes a box and constructs the corresponding PolyArea by oversampling the lon to avoid artifacts while displaying the PolyArea on scattergeo
-function box_to_poly_oversample(b::Union{BOX_CART, BOX_LATLON}, lon_dist = 5)
-	lo, hi = extrema(b) .|> coords .|> CoordRefSystems.raw
-    lo_lon, lo_lat = lo
-    hi_lon, hi_lat = hi
-    f = to_cart_point
-	Δlon = hi_lon - lo_lon
-    # We have points in lon distanced by around 5° mostly to avoid problems in plotting on scattergeo
-    nlon = max(2, ceil(Int, Δlon / lon_dist))
-	hi_gen = [f(LatLon(hi_lat, lon)) for lon in range(lo_lon, hi_lon, nlon)]
-	lo_gen = [f(LatLon(lo_lat, lon)) for lon in range(hi_lon, lo_lon, nlon)]
-    p = Ring(vcat(hi_gen, lo_gen)) |> PolyArea
-end
-
 # This function is used to take a MULTI_CART or Region and a clipping mask and create a MultiBorder obtained by clipping with the mask using the Sutherland-Hodgman algorithm
 function clipped_multiborder(original::MULTI_CART{P}, mask::Union{BoxBorder{P}, PolyBorder{P}}) where P
     # We iterate over all polygons, converting everything to Float32 precision

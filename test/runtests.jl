@@ -13,7 +13,7 @@ include("offsetting.jl")
     Aqua.test_ambiguities(GeoGrids)
 end
 
-@testitem "JET" begin
+@testitem "JET" tags=[:jet] begin
     using JET
     report_package("GeoGrids")
 end

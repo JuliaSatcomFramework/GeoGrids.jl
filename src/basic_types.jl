@@ -248,6 +248,7 @@ function MultiRegion(areas::Vector; name::String = "")
     # We convert all polygons to Float32 machine precision, use the full constructor to create a different machine type
     T = Float32
     f(reg) = Iterators.map(change_geometry(LatLon, T), polyareas(reg))
+    f(b::BorderGeometry) = Iterators.map(change_geometry(LatLon, T), polyareas(b))
     f(reg::Geometry) = (change_geometry(LatLon, T, reg), )
 
     multi_latlon = Iterators.flatten((f(area) for area in areas)) |> Multi

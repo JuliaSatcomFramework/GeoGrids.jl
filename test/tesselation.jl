@@ -1,3 +1,25 @@
+@testsnippet setup_tessellation begin
+    using GeoGrids
+    using GeoGrids: constants, to_raw_coords
+
+    function haversine(p1, p2; refRadius = constants.Re_mean)
+        # Convert latitude and longitude to radians
+        lon1, lat1 = to_raw_coords(p1) .|> deg2rad
+        lon2, lat2 = to_raw_coords(p2) .|> deg2rad
+
+        # Calculate differences in longitude and latitude
+        Δlon = lon2 - lon1
+        Δlat = lat2 - lat1
+
+        # Calculate the great-circle distance
+        a = sin(Δlat / 2)^2 + cos(lat1) * cos(lat2) * sin(Δlon / 2)^2
+        c = 2 * atan(sqrt(a), sqrt(1 - a))
+
+        # Return the distance in kilometers
+        return refRadius * c
+    end
+end
+
 ## HEX
 @testitem "GeoRegion HEX Layout Tesselation and :hex Pattern (no EO)" tags = [:tesselation] begin
     # NOTE: 
@@ -73,27 +95,24 @@ end
     end
 end
 
-@testitem "GeoRegion HEX Layout Tesselation and :circ Pattern (with EO)" tags = [:tesselation] begin
+@testitem "GeoRegion HEX Layout Tesselation and :circ Pattern (with EO)" tags = [:tesselation] setup=[setup_tessellation] begin
     samplePoints = [LatLon(43.2693, -8.83691), LatLon(43.6057, -8.11563), LatLon(36.808, -5.06421), LatLon(36.792, -2.3703)] # LatLon{WGS84Latest} coordinates
-    corresponding_idxs_points = [1, 2, 121, 122]
-    sampleNgons = [[LatLon(42.9096, -8.83691), LatLon(42.9271, -8.68509), LatLon(42.9779, -8.5479), LatLon(43.0572, -8.43861), LatLon(43.1572, -8.36791), LatLon(43.2682, -8.34287), LatLon(43.3795, -8.36619), LatLon(43.48, -8.43583), LatLon(43.56, -8.54512), LatLon(43.6113, -8.68338), LatLon(43.629, -8.83691), LatLon(43.6113, -8.99044), LatLon(43.56, -9.12869), LatLon(43.48, -9.23798), LatLon(43.3795, -9.30762), LatLon(43.2682, -9.33094), LatLon(43.1572, -9.3059), LatLon(43.0572, -9.23521), LatLon(42.9779, -9.12591), LatLon(42.9271, -8.98872), LatLon(42.9096, -8.83691), LatLon(42.9096, -8.83691)],
-        [LatLon(36.4322, -2.3703), LatLon(36.4498, -2.23211), LatLon(36.5006, -2.10727), LatLon(36.58, -2.00789), LatLon(36.68, -1.94371), LatLon(36.7911, -1.9211), LatLon(36.9024, -1.94247), LatLon(37.0029, -2.00588), LatLon(37.0827, -2.10526), LatLon(37.134, -2.23087), LatLon(37.1517, -2.3703), LatLon(37.134, -2.50974), LatLon(37.0827, -2.63535), LatLon(37.0029, -2.73472), LatLon(36.9024, -2.79814), LatLon(36.7911, -2.8195), LatLon(36.68, -2.7969), LatLon(36.58, -2.73272), LatLon(36.5006, -2.63334), LatLon(36.4498, -2.5085), LatLon(36.4322, -2.3703), LatLon(36.4322, -2.3703)]]
-    corresponding_idxs_ngon = [1, 122]
+    corresponding_idxs = [1, 2, 121, 122]
 
     reg = GeoRegion(; name="Tassellation", admin="Spain")
     centers, ngon = generate_tesselation(reg, 40000, HEX(; pattern=:circ), EO())
 
     @test length(centers) == 122
     for i in eachindex(samplePoints)
-        @test abs(get_lat(centers[corresponding_idxs_points[i]]) - samplePoints[i].lat) < 1e-4
-        @test abs(get_lon(centers[corresponding_idxs_points[i]]) - samplePoints[i].lon) < 1e-4
+        @test haversine(centers[corresponding_idxs[i]], samplePoints[i]) < 10 # 10m is less than 1e-4 radians
     end
 
     @test length(ngon) == 122
-    for i in eachindex(sampleNgons)
-        for v in eachindex(sampleNgons[i])
-            @test abs(get_lat(ngon[corresponding_idxs_ngon[i]][v]) - sampleNgons[i][v].lat) < 1e-4
-            @test abs(get_lon(ngon[corresponding_idxs_ngon[i]][v]) - sampleNgons[i][v].lon) < 1e-4
+    for (i, idx) in enumerate(corresponding_idxs)
+        p1 = samplePoints[i]
+        for p in ngon[idx]
+            # We test that the great circle distance to the resulting ngon points is roughly the target radius
+            @test haversine(p, p1) - 40000 < 10 # 10m is less than 1e-4 radians
         end
     end
 end
@@ -294,32 +313,48 @@ end
     end
 end
 
-@testitem "GeoRegion ICO Layout Tesselation and :hex Pattern (with EO)" tags = [:tesselation] begin
+@testitem "GeoRegion ICO Layout Tesselation and :circ Pattern (with EO)" tags = [:tesselation] setup=[setup_tessellation] begin
     samplePoints = [LatLon(43.5772, -7.50902), LatLon(43.4468, -5.70002), LatLon(36.6657, -3.58858), LatLon(36.285, -5.82463)]
-    corresponding_idxs_points = [1, 2, 103, 104]
-    sampleNgons = [[LatLon(43.2175, -7.50902), LatLon(43.235, -7.35644), LatLon(43.2858, -7.21855), LatLon(43.3651, -7.1087), LatLon(43.4651, -7.03764), LatLon(43.5761, -7.01247), LatLon(43.6874, -7.03589), LatLon(43.7879, -7.10588), LatLon(43.8679, -7.21573), LatLon(43.9192, -7.35469), LatLon(43.9369, -7.50902), LatLon(43.9192, -7.66334), LatLon(43.8679, -7.8023), LatLon(43.7879, -7.91215), LatLon(43.6874, -7.98214), LatLon(43.5761, -8.00557), LatLon(43.4651, -7.9804), LatLon(43.3651, -7.90933), LatLon(43.2858, -7.79948), LatLon(43.235, -7.6616), LatLon(43.2175, -7.50902), LatLon(43.2175, -7.50902)],
-        [LatLon(35.9252, -5.82463), LatLon(35.9428, -5.68733), LatLon(35.9937, -5.56329), LatLon(36.073, -5.46457), LatLon(36.1731, -5.40081), LatLon(36.2841, -5.37836), LatLon(36.3954, -5.3996), LatLon(36.4959, -5.46261), LatLon(36.5757, -5.56134), LatLon(36.627, -5.68612), LatLon(36.6447, -5.82463), LatLon(36.627, -5.96314), LatLon(36.5757, -6.08792), LatLon(36.4959, -6.18665), LatLon(36.3954, -6.24966), LatLon(36.2841, -6.27089), LatLon(36.1731, -6.24845), LatLon(36.073, -6.18469), LatLon(35.9937, -6.08597), LatLon(35.9428, -5.96193), LatLon(35.9252, -5.82463), LatLon(35.9252, -5.82463)]]
-    corresponding_idxs_ngon = [1, 104]
+    corresponding_idxs = [1, 2, 103, 104]
 
     reg = GeoRegion(; name="Tassellation", admin="Spain")
     centers, ngon = generate_tesselation(reg, 40000, ICO(), EO())
 
     @test length(centers) == 104
     for i in eachindex(samplePoints)
-        @test abs(get_lat(centers[corresponding_idxs_points[i]]) - samplePoints[i].lat) < 1e-4
-        @test abs(get_lon(centers[corresponding_idxs_points[i]]) - samplePoints[i].lon) < 1e-4
+        @test haversine(centers[corresponding_idxs[i]], samplePoints[i]) < 10 # 10m is less than 1e-4 radians
     end
 
     @test length(ngon) == 104
-    for i in eachindex(sampleNgons)
-        for v in eachindex(sampleNgons[i])
-            @test abs(get_lat(ngon[corresponding_idxs_ngon[i]][v]) - sampleNgons[i][v].lat) < 1e-4
-            @test abs(get_lon(ngon[corresponding_idxs_ngon[i]][v]) - sampleNgons[i][v].lon) < 1e-4
+    for (i, idx) in enumerate(corresponding_idxs)
+        p1 = samplePoints[i]
+        for p in ngon[idx]
+            # We test that the great circle distance to the resulting ngon points is roughly the target radius
+            @test haversine(p, p1) - 40000 < 10 # 10m is less than 1e-4 radians
         end
     end
+end
+
+@testitem "Misc coverage" begin
+    using GeoGrids: gen_circle_pattern, get_lat, _wrap_latlon
+
+    # We test wrapping around poles
+    pts = gen_circle_pattern(LatLon(90, 0), 1000e3) |> first
+    lat = get_lat(first(pts))
+    @test all(p -> get_lat(p) ≈ lat, pts)
+
+    pts = gen_circle_pattern(LatLon(-90, 0), 1000e3) |> first
+    lat = get_lat(first(pts))
+    @test all(p -> get_lat(p) ≈ lat, pts)
+
+    @test _wrap_latlon(100, 0) == (80, 180)
+    @test _wrap_latlon(-100, 0) == (-80, 180)
 end
 
 @testitem "Test missing Functions" tags = [:tesselation] begin
     reg = GlobalRegion()
     @test_throws "H3 tassellation is not yet implemented in this version..." generate_tesselation(reg, 10.0, H3())
+
+    @test_throws ArgumentError generate_tesselation(GlobalRegion(), 10.0, HEX())
+    @test_throws ArgumentError generate_tesselation(GlobalRegion(), 10.0, HEX(), EO())
 end

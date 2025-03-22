@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+- The `plot_geo_poly` function now has a `single_trace` keyword argument to allow for plotting multiple polyareas provided as a single trace (default to `false`).
+- The `plot_geo_poly` function now also supports generic iterables of PolyAreas and has specific methods to be used with `AbtractRegion` inputs.
+- The `plot_geo_cells` function now has a `color_contours` keyword argument to control whether the cell contours are also colored when providing a `color` vector(default to `true`).
+
+### Fixed
+- Fixed some issues with Plotting introduced with CountriesBorders.jl 0.4.8 that are now fixed with 0.4.9.
+- Removed some code duplication and overspecified arguments in function signatures for internal code.
+- The internal `gen_circle_pattern` function now returns a number of points which respects the `n` input keyword argument.
+
+
 ## [0.5.8] - 2025-03-20
 
 ### Added
