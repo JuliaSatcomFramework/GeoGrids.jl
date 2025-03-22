@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.5.9] - 2025-03-22
+
 ### Added
 - The `plot_geo_poly` function now has a `single_trace` keyword argument to allow for plotting multiple polyareas provided as a single trace (default to `false`).
 - The `plot_geo_poly` function now also supports generic iterables of PolyAreas and has specific methods to be used with `AbtractRegion` inputs.
