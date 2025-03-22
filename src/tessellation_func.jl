@@ -34,7 +34,7 @@ See also: [`gen_hex_lattice`](@ref), [`_generate_tesselation`](@ref),
 [`_hex_tesselation_centroids`](@ref), [`_tesselate`](@ref), [`HEX`](@ref),
 [`GeoRegion`](@ref), [`PolyRegion`](@ref)
 """
-function generate_tesselation(region::Union{GeoRegion,PolyRegion,GeoRegionOffset,PolyRegionOffset}, radius::Number, type::HEX; refRadius::Number=constants.Re_mean, kwargs_lattice...)
+function generate_tesselation(region::AbstractRegion, radius::Number, type::HEX; refRadius::Number=constants.Re_mean, kwargs_lattice...)
     # Generate the tassellation centroids.
     origin = centroid(LatLon, region)
     centroids = _hex_tesselation_centroids(origin, radius; direction=type.direction, refRadius, kwargs_lattice...)
@@ -43,27 +43,15 @@ function generate_tesselation(region::Union{GeoRegion,PolyRegion,GeoRegionOffset
     return filter_points(centroids, region)
 end
 
-function generate_tesselation(region::Union{GeoRegion,PolyRegion,GeoRegionOffset,PolyRegionOffset}, radius::Number, type::HEX, ::EO; refRadius::Number=constants.Re_mean, kwargs_lattice...)
+function generate_tesselation(region::AbstractRegion, radius::Number, type::HEX, ::EO; refRadius::Number=constants.Re_mean, kwargs_lattice...)
     # Generate the tassellation centroids.
     origin = centroid(LatLon, region)
     centroids = _hex_tesselation_centroids(origin, radius; direction=type.direction, refRadius, kwargs_lattice...)
 
-    if type.pattern == :hex # Hexagonal pattern
-        # Create the tasselation from all the centroids.
-        mesh = _tesselate(centroids)
-        # Filter centroids in the region.
-        filtered, idxs = filter_points(centroids, region, EO())
-        # Create the hexagonal pattern from the filtered centroids.
-        hexagons = gen_hex_pattern(filtered, idxs, mesh)
-        return filtered, hexagons
-    else # Circular pattern
-        # Filter centroids in the region.
-        filtered = filter_points(centroids, region)
-        # Create the circular pattern from the filtered centroids.
-        circles = gen_circle_pattern(filtered, radius; refRadius, n=20)
-        return filtered, circles
-    end
+    return _tessellation_with_contours(centroids, region, type.pattern; refRadius, radius)
 end
+
+generate_tesselation(region::GlobalRegion, radius::Number, type::HEX, args...; kwargs...) = throw(ArgumentError("GlobalRegion is not supported for hexagonal tesselation"))
 
 """
     generate_tesselation(region::GlobalRegion, radius::Number, type::ICO; refRadius::Number=constants.Re_mean) -> AbstractVector{<:LatLon}
@@ -107,21 +95,7 @@ function generate_tesselation(region::AbstractRegion, radius::Number, type::ICO,
     # Generate the tassellation centroids.
     centroids = _adapted_icogrid(radius; refRadius, correctionFactor=type.correction)
 
-    if type.pattern == :hex # Hexagonal pattern
-        # Create the tasselation from all the centroids.
-        mesh = _tesselate(centroids)
-        # Filter centroids in the region.
-        filtered, idxs = filter_points(centroids, region, EO())
-        # Create the hexagonal pattern from the filtered centroids.
-        hexagons = gen_hex_pattern(filtered, idxs, mesh)
-        return filtered, hexagons
-    else # Circular pattern
-        # Filter centroids in the region.
-        filtered = filter_points(centroids, region)
-        # Create the circular pattern from the filtered centroids.
-        circles = gen_circle_pattern(filtered, radius; refRadius, n=20)
-        return filtered, circles
-    end
+    return _tessellation_with_contours(centroids, region, type.pattern; refRadius, radius)
 end
 
 function generate_tesselation(::AbstractRegion, radius::Number, type::H3; refRadius::Number=constants.Re_mean)
@@ -343,6 +317,25 @@ function _tesselate(points::AbstractVector{<:Point{🌐,<:LatLon{WGS84Latest}}},
     return tesselate(PointSet(converted), method)
 end
 
+# This function extract and return the tessellation centers and contours for the tessellation based on a set of centroids, a region to limit the tessellation to and the pattern to use for the tessellation
+function _tessellation_with_contours(centroids, region, pattern::Symbol; refRadius=constants.Re_mean, radius)
+    if pattern == :hex # Hexagonal pattern
+        # Create the tasselation from all the centroids.
+        mesh = _tesselate(centroids)
+        # Filter centroids in the region.
+        filtered, idxs = filter_points(centroids, region, EO())
+        # Create the hexagonal pattern from the filtered centroids.
+        hexagons = gen_hex_pattern(filtered, idxs, mesh)
+        return filtered, hexagons
+    else # Circular pattern
+        # Filter centroids in the region.
+        filtered = filter_points(centroids, region)
+        # Create the circular pattern from the filtered centroids.
+        circles = gen_circle_pattern(filtered, radius; refRadius, n=20)
+        return filtered, circles
+    end
+end
+
 """
     gen_circle_pattern(centers::AbstractVector{Point{🌐,<:LatLon{WGS84Latest}}}, radius::Number; refRadius::Number=constants.Re_mean, n::Int=20) -> Vector{Vector{Point{🌐,<:LatLon{WGS84Latest}}}
     gen_circle_pattern(c::Point{🌐,<:LatLon{WGS84Latest}}, radius::Number; kwargs...) -> Vector{Point{🌐,<:LatLon{WGS84Latest}}
@@ -366,19 +359,16 @@ Tis function is used to create a plottable patter od the circles around a center
 - `Vector{Vector{Point{🌐,<:LatLon{WGS84Latest}}}}`: A vector where each element is a vector of `LatLon` points representing a circle.
 """
 function gen_circle_pattern(centers::AbstractVector{<:Point{🌐,<:LatLon{WGS84Latest}}}, radius::Number; refRadius::Number=constants.Re_mean, n::Int=20)
-    Δϕ = [collect(0:2π/n:2π)..., 0.0] # [rad]
-    circles = [fill(Point(LatLon{WGS84Latest}(0, 0)), length(Δϕ)) for i in 1:length(centers)] # Each element of the vector is a vector of LatLon points composing a circle.
-    for c in eachindex(centers)
-        θ = 90 - (get_lat(centers[c]) |> ustrip) |> deg2rad
-        ϕ = get_lon(centers[c]) |> ustrip |> deg2rad
-        centreθφ = (; θ=θ, ϕ=ϕ) # [rad] Convert lat-lon in theta-phi (shperical approximation)
+    circles = map(centers) do center
+        θ = 90° - get_lat(center)
+        ϕ = get_lon(center)
+        centreθφ = (; θ, ϕ) # [rad] Convert lat-lon in theta-phi (shperical approximation)
         Δθ = radius / refRadius # [rad]
-
-        for (i, v) in enumerate(Δϕ)
-            offsetθφ = (; θ=Δθ, ϕ=v) # [rad]
+        map(range(0, 2π, length=n)) do Δϕ
+            offsetθφ = (; θ=Δθ, ϕ=Δϕ) # [rad]
             new = _add_angular_offset(centreθφ, offsetθφ)
             lat, lon = _wrap_latlon(π / 2 - new.θ |> rad2deg, new.ϕ |> rad2deg)
-            circles[c][i] = LatLon{WGS84Latest}(lat, lon) |> Point
+            LatLon(lat, lon) |> Point
         end
     end
 
