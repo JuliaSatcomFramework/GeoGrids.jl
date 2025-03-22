@@ -1,14 +1,12 @@
 ## Define Getters
-get_lat(p::Point{𝔼{2},<:Cartesian2D{WGS84Latest}}) = coords(p).y |> ustrip |> Deg # LAT is Y
-get_lat(p::Point{🌐,<:LatLon{WGS84Latest}}) = coords(p).lat
-get_lat(p::LatLon) = p.lat
-
-get_lon(p::Point{𝔼{2},<:Cartesian2D{WGS84Latest}}) = coords(p).x |> ustrip |> Deg # LON is X
-get_lon(p::Point{🌐,<:LatLon{WGS84Latest}}) = coords(p).lon
-get_lon(p::LatLon) = p.lon
+get_lat(p) = to_raw_coords(p)[2] |> Deg 
+get_lon(p) = to_raw_coords(p)[1] |> Deg 
 
 CountriesBorders.floattype(r::AbstractRegion) = return floattype(r.domain)
 CountriesBorders.floattype(::LatBeltRegion) = return Float64
+
+CountriesBorders.latlon_geometry(T::Type{<:Real}, b::BorderGeometry) = latlon_geometry(T, b.latlon)
+CountriesBorders.cartesian_geometry(T::Type{<:Real}, b::BorderGeometry) = cartesian_geometry(T, b.cart)
 
 ## borders()
 # Define borders for PolyBorder

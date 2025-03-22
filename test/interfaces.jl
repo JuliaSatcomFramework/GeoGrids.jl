@@ -192,7 +192,7 @@ end
 end
 
 @testitem "CountriesBorders methods" tags = [:interface] begin
-    using GeoGrids: floattype, bboxes, polyareas, borders, POLY_CART, BOX_CART
+    using GeoGrids: floattype, bboxes, polyareas, borders, POLY_CART, BOX_CART, BOX_LATLON, latlon_geometry, cartesian_geometry
 
     r = GeoRegion(name="ITA", admin="Italy")
     llr = LatBeltRegion(; name = "llr", lim = (-30°, -29°))
@@ -208,4 +208,8 @@ end
     end
 
     @test centroid(box) == centroid(borders(Cartesian, box))
+
+    bb = BoxBorder(LatLon(0, 0), LatLon(90, 99))
+    @test cartesian_geometry(Float32, bb) isa BOX_CART
+    @test latlon_geometry(Float32, bb) isa BOX_LATLON
 end
