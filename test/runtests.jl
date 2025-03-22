@@ -18,5 +18,4 @@ end
     report_package("GeoGrids")
 end
 
-# @run_package_tests verbose = true
-@run_package_tests verbose = true filter=ti->!(:jet in ti.tags)
+@run_package_tests verbose = true

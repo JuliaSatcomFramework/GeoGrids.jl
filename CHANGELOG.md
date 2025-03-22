@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed some issues with Plotting introduced with CountriesBorders.jl 0.4.8 that are now fixed with 0.4.9.
+- Removed some code duplication and overspecified arguments in function signatures for internal code.
 
 
 ## [0.5.8] - 2025-03-20
