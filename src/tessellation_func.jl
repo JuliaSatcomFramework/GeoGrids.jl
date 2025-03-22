@@ -51,7 +51,9 @@ function generate_tesselation(region::AbstractRegion, radius::Number, type::HEX,
     return _tessellation_with_contours(centroids, region, type.pattern; refRadius, radius)
 end
 
-generate_tesselation(region::GlobalRegion, radius::Number, type::HEX, args...; kwargs...) = throw(ArgumentError("GlobalRegion is not supported for hexagonal tesselation"))
+# Throw for global region
+generate_tesselation(region::GlobalRegion, radius::Number, type::HEX, ::EO; kwargs...) = throw(ArgumentError("GlobalRegion is not supported for hexagonal tesselation"))
+generate_tesselation(region::GlobalRegion, radius::Number, type::HEX; kwargs...) = throw(ArgumentError("GlobalRegion is not supported for hexagonal tesselation"))
 
 """
     generate_tesselation(region::GlobalRegion, radius::Number, type::ICO; refRadius::Number=constants.Re_mean) -> AbstractVector{<:LatLon}
