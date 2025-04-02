@@ -1,11 +1,11 @@
 @testsnippet setup_tessellation begin
     using GeoGrids
-    using GeoGrids: constants, to_raw_coords
+    using GeoGrids: constants, to_raw_lonlat
 
     function haversine(p1, p2; refRadius = constants.Re_mean)
         # Convert latitude and longitude to radians
-        lon1, lat1 = to_raw_coords(p1) .|> deg2rad
-        lon2, lat2 = to_raw_coords(p2) .|> deg2rad
+        lon1, lat1 = to_raw_lonlat(p1) .|> deg2rad
+        lon2, lat2 = to_raw_lonlat(p2) .|> deg2rad
 
         # Calculate differences in longitude and latitude
         Δlon = lon2 - lon1

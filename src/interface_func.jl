@@ -1,6 +1,6 @@
 ## Define Getters
-get_lat(p) = to_raw_coords(p)[2] |> Deg 
-get_lon(p) = to_raw_coords(p)[1] |> Deg 
+get_lat(p) = to_raw_lonlat(p)[2] |> Deg 
+get_lon(p) = to_raw_lonlat(p)[1] |> Deg 
 
 CountriesBorders.floattype(r::AbstractRegion) = return floattype(r.domain)
 CountriesBorders.floattype(::LatBeltRegion) = return Float64
@@ -77,9 +77,12 @@ Meshes.centroid(d::AbstractRegion) = centroid(Cartesian, d)
 ## CountriesBorders.extract_countries()
 CountriesBorders.extract_countries(r::GeoRegion) = r.domain
 
-## geom_iterable, used by extract_plot_coords
-CountriesBorders.geom_iterable(b::BorderGeometry) = geom_iterable(borders(LatLon, b))
-CountriesBorders.geom_iterable(b::BoxBorder) = polyareas(b) # The box is not directly supported
+## geom_iterable, used by extract_latlon_coords
+GeoPlottingHelpers.geom_iterable(b::BorderGeometry) = geom_iterable(borders(LatLon, b))
+GeoPlottingHelpers.geom_iterable(b::BoxBorder) = polyareas(b) # The box is not directly supported
 
-CountriesBorders.geom_iterable(r::AbstractRegion) = geom_iterable(r.domain)
-CountriesBorders.geom_iterable(r::LatBeltRegion) = polyareas(r)
+GeoPlottingHelpers.geom_iterable(r::AbstractRegion) = geom_iterable(r.domain)
+GeoPlottingHelpers.geom_iterable(r::LatBeltRegion) = polyareas(r)
+
+# Default plot kwargs to lines for regions
+GeoPlottingHelpers.geo_plotly_trace_default_kwargs(::AbstractRegion, tracefunc) = (; mode = "lines")

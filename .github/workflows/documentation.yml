@@ -17,6 +17,10 @@ jobs:
       - uses: julia-actions/setup-julia@v1
         with:
           version: '1.11'
+      - uses: julia-actions/julia-buildpkg@v1
+        with:
+          localregistry: |
+            https://github.com/JuliaSatcomFramework/JuliaRegistry.git
       - name: Install dependencies
         run: julia --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
       - name: Build and deploy

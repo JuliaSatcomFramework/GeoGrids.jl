@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Changed
+- Migrated internally to CountriesBorders.jl 0.4.11 and updated the internal functions to use the new/updated functions. 
+
 ## [0.5.9] - 2025-03-22
 
 ### Added
