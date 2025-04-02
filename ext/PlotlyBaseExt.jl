@@ -7,8 +7,9 @@ using Meshes: vertices, rings, Multi, Ngon, 🌐, WGS84Latest
 
 using GeoGrids
 using GeoGrids: MultiBorder, PolyBorder, AbstractRegion, BorderGeometry, BoxBorder
-using GeoGrids.CountriesBorders: LATLON, POINT_LATLON, extract_plot_coords, extract_plot_coords!, with_settings, polyareas, cartesian_geometry, borders
-using GeoGrids.CountriesBorders.GeoTablesConversion: POLY_LATLON, MULTI_LATLON, BOX_LATLON
+using GeoGrids.CountriesBorders: LATLON, POINT_LATLON, POLY_LATLON, MULTI_LATLON, BOX_LATLON,  polyareas, cartesian_geometry, borders
+using GeoGrids.GeoPlottingHelpers: geo_plotly_trace, extract_latlon_coords, geom_iterable, with_settings
+using GeoGrids
 
 const VALID_COORD = Union{LATLON, POINT_LATLON}
 
@@ -103,14 +104,8 @@ PlotlyBase.
 - A `scattergeo` object representing the scatter plot of the provided \
 geographic points.
 """
-function GeoGrids._get_scatter_points(points::AbstractVector{<:VALID_COORD}; kwargs...)
-    # Markers for the points
-    return scattergeo(;
-        extract_plot_coords(points)...,
-        DEFAULT_POINT...,
-        kwargs...
-    )
-end
+GeoGrids._get_scatter_points(points::AbstractVector{<:VALID_COORD}; kwargs...) =
+    geo_plotly_trace(scattergeo, points; DEFAULT_POINT..., kwargs...)
 
 """
     GeoGrids._get_scatter_cellcontour(polygons::AbstractVector{<:Union{LatLon,Point{🌐,<:LatLon{WGS84Latest}}}}; kwargs...)
@@ -137,11 +132,7 @@ contours, ready for rendering in a geographic plot.
 function GeoGrids._get_scatter_cellcontour(polygons::AbstractVector{<:AbstractVector{<:VALID_COORD}}; colors, kwargs...)
     function f(polys; color = nothing) 
         cc = isnothing(color) ? DEFAULT_CELL_CONTOUR : attr(; DEFAULT_CELL_CONTOUR..., marker_color=color)
-        scattergeo(;
-            extract_plot_coords(polys)...,
-            cc...,
-            kwargs...
-        )
+        geo_plotly_trace(scattergeo, polys; cc..., kwargs...)
     end
     isnothing(colors) && return [f(polygons)]
     # We have more colors
@@ -179,9 +170,7 @@ function GeoGrids._get_scatter_poly(poly::PolyArea; kwargs...)
     # scatter line
     map(rings(poly)) do ring
         # Each ring will be a separate trace.
-        scattergeo(;
-            extract_plot_coords(ring)...,
-            mode="lines",
+        geo_plotly_trace(scattergeo, ring;
             line_color="red",
             showlegend=false,
             kwargs...
@@ -456,7 +445,7 @@ function GeoGrids.plot_unitarysphere(points_cart; kwargs_scatter=(;), kwargs_lay
     plotly_plot([sphere, markers], layout)
 end
 
-PlotlyBase.scattergeo(b::BorderGeometry; kwargs...) = scattergeo(; extract_plot_coords(b)..., mode = "lines")
-PlotlyBase.scattergeo(b::AbstractRegion; kwargs...) = scattergeo(; extract_plot_coords(b)..., mode = "lines")
+PlotlyBase.scattergeo(b::BorderGeometry; kwargs...) = geo_plotly_trace(scattergeo, b; kwargs...)
+PlotlyBase.scattergeo(b::AbstractRegion; kwargs...) = geo_plotly_trace(scattergeo, b; kwargs...)
 
 end # module PlotlyBaseExt
