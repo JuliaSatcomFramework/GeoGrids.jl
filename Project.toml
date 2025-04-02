@@ -29,7 +29,7 @@ PlotlyBaseExt = "PlotlyBase"
 [compat]
 AngleBetweenVectors = "0.3.0"
 Clipper = "0.6.3"
-CoordRefSystems = "0.13 - 0.16"
+CoordRefSystems = "0.13 - 0.17"
 CountriesBorders = "0.4.11"
 Dictionaries = "0.4.2"
 Distances = "0.10.12"
