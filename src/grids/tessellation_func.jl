@@ -78,6 +78,13 @@ correction factor.
 - `::EO`: an extra parameter enabling a `Vector{Ngon}` the contours of \
 each cell. The mesh originating these contours is obtained using \
 `VoronoiTesselation`.
+- `refRadius::Number`: The radius of the Earth in meters (default is \
+`constants.Re_mean`).
+- `maxPrec=10^7`: The maximum precision for the grid generation. It controls the \
+maximum number of points in the grid and can be adjusted based on the \
+application's requirements. It should be increased when incredibly small cells \
+(approximately below 5 km radius, consider 10 km radius is the lowerbound for \
+3GPP NTN, see TR38.821) are needed.
 
 ## Returns
 - `Vector{Point{🌐,<:LatLon{WGS84Latest}}}`: A Vecotr of points (`LatLon`) \
@@ -87,15 +94,15 @@ See also: [`_adapted_icogrid()`](@ref), [`icogrid()`](@ref),
 [`filter_points()`](@ref), [`GeoRegion`](@ref), [`LatBeltRegion`](@ref),
 [`PolyRegion`](@ref), [`GlobalRegion`](@ref), [`ICO`](@ref)
 """
-function generate_tesselation(region::AbstractRegion, radius::Number, type::ICO; refRadius::Number=constants.Re_mean)
-    centroids = _adapted_icogrid(radius; refRadius, correctionFactor=type.correction)
+function generate_tesselation(region::AbstractRegion, radius::Number, type::ICO; refRadius::Number=constants.Re_mean, maxPrec=10^7, tol=10)
+    centroids = _adapted_icogrid(radius; refRadius, correctionFactor=type.correction, maxPrec, tol)
 
     return filter_points(centroids, region)
 end
 
-function generate_tesselation(region::AbstractRegion, radius::Number, type::ICO, ::EO; refRadius::Number=constants.Re_mean)
+function generate_tesselation(region::AbstractRegion, radius::Number, type::ICO, ::EO; refRadius::Number=constants.Re_mean, maxPrec=10^7, tol=10)
     # Generate the tassellation centroids.
-    centroids = _adapted_icogrid(radius; refRadius, correctionFactor=type.correction)
+    centroids = _adapted_icogrid(radius; refRadius, correctionFactor=type.correction, maxPrec, tol)
 
     return _tessellation_with_contours(centroids, region, type.pattern; refRadius, radius)
 end
@@ -197,13 +204,20 @@ points.
 ## Keyword Arguments
 - `correctionFactor=1.2`: The correction factor used to adapt the cell centers' \
 distances to ensure the grid is appropriate for the desired scale.
-    
+- `refRadius=constants.Re_mean`: The reference radius for the spherical \
+approximation, defaulting to the mean Earth radius (`Re_mean`).
+- `maxPrec=10^7`: The maximum precision for the grid generation. It controls the \
+maximum number of points in the grid and can be adjusted based on the \
+application's requirements, see: [`_points_required_for_separation_angle`](@ref).
+- `tol=10`: The tolerance level for precision when determining the \
+required subdivision level, see: [`_points_required_for_separation_angle`](@ref).
+
 ## Returns
 - `grid`: The generated icosahedral grid based on the calculated separation \
 angle. The specific structure and format of the returned grid depend on the \
 `icogrid` function being used.
 """
-function _adapted_icogrid(radius::Number; refRadius=constants.Re_mean, correctionFactor=6 / 5)
+function _adapted_icogrid(radius::Number; refRadius=constants.Re_mean, correctionFactor=6/5, maxPrec=10^7, tol=10)
     # Define the separation angle for the icosahedral grid in a similar way as
     # for the hexagonal grid using a correction factor 1.2 to adapt the cell
     # centers distances (from old MATLAB grid). The correction factor would be
@@ -211,7 +225,7 @@ function _adapted_icogrid(radius::Number; refRadius=constants.Re_mean, correctio
     # Furthermore, using the refRadius we normalize for the unitary sphere.
     sepAng = radius * correctionFactor / refRadius |> rad2deg
 
-    return icogrid(; sepAng)
+    return icogrid(; sepAng, maxPrec)
 end
 
 """

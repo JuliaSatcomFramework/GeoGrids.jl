@@ -1,6 +1,6 @@
 """
     icogrid(; N::Union{Int,Nothing}=nothing, sepAng::Union{ValidAngle,Nothing}=nothing, 
-            maxPrec=10^7, spheRadius=1.0, pointsToCheck::Int=50, tol=10)
+            maxPrec=10^7, spheRadius=1.0, pointsToCheck::Int=100, tol=10)
 
 Generates a grid of points on the surface of a sphere based on an icosahedral subdivision.
 
@@ -15,7 +15,7 @@ provided, `N` must be `nothing`.
 computation, see: [`_points_required_for_separation_angle`](@ref).
 - `spheRadius::Float64=1.0`: The radius of the sphere on which the grid is \
 generated.
-- `pointsToCheck::Int=50`: The number of points to check when calculating the \
+- `pointsToCheck::Int=100`: The number of points to check when calculating the \
 required subdivision level for a given `sepAng`, see: \
 [`_points_required_for_separation_angle`](@ref).
 - `tol::Int=10`: The tolerance level for precision when determining the \
@@ -34,7 +34,7 @@ warning.
 Use `°` or `rad` from the `Unitful` package to specify angles in degrees or \
 radians.
 """
-function icogrid(; N::Union{Int,Nothing}=nothing, sepAng::Union{ValidAngle,Nothing}=nothing, maxPrec=10^7, spheRadius=1.0, pointsToCheck::Int=50, tol=10)
+function icogrid(; N::Union{Int,Nothing}=nothing, sepAng::Union{ValidAngle,Nothing}=nothing, maxPrec=10^7, spheRadius=1.0, pointsToCheck::Int=100, tol=10)
     if isnothing(sepAng) && !isnothing(N)
         vec = _icogrid(N; coord=:sphe)
     elseif !isnothing(sepAng) && isnothing(N)
@@ -110,7 +110,7 @@ function _icogrid(N::Int; coord::Symbol=:sphe, spheRadius=1.0)
 end
 
 """
-    _points_required_for_separation_angle(angle::ValidAngle; spheRadius=1.0, pointsToCheck::Int=50, maxPrec=10^7, tol=10)
+    _points_required_for_separation_angle(angle::ValidAngle; spheRadius=1.0, pointsToCheck::Int=100, maxPrec=10^7, tol=10)
 
 This function computes the minimum number of points required on the surface of a
 sphere to achieve a desired separation angle between any two adjacent points.
@@ -127,7 +127,7 @@ adjacent points on the surface of the sphere.
 provided, it defaults to 1.0. This value is used to calculate the distance between points \
 on the surface of the sphere. As default, the function assumes a unit sphere.
 - `pointsToCheck`: an optional integer representing the number of points to \
-generate on the surface of the sphere. If not provided, it defaults to 50.
+generate on the surface of the sphere. If not provided, it defaults to 100.
 - `maxPrec`: an optional integer representing the maximum precision for the \
 number of points generated on the surface of the sphere. If not provided, it \
 defaults to 10^7. Increasing this value will increase the precision of the result, \
@@ -143,7 +143,7 @@ surface of the sphere to achieve the desired separation angle.
 - `thisSep`: an Uniful.Quantity in degrees representing the separation angle \
 between two adjacent points on the surface of the sphere.
 """
-function _points_required_for_separation_angle(sepAng::ValidAngle; spheRadius=1.0, pointsToCheck::Int=50, maxPrec=10^7, tol=10)
+function _points_required_for_separation_angle(sepAng::ValidAngle; spheRadius=1.0, pointsToCheck::Int=100, maxPrec=10^7, tol=10)
     # Input validation (make it deg)
     _sepAng = sepAng isa Real ? sepAng * ° : sepAng |> u"°" # Convert to Uniful °
     # Bisection
@@ -216,7 +216,7 @@ function _find_min_separation_angle(points)
 end
 
 """
-    _fibonaccisphere_classic_partial(N; spheRadius=1.0, pointsToCheck::Int=50)
+    _fibonaccisphere_classic_partial(N; spheRadius=1.0, pointsToCheck::Int=100)
 
 ## Arguments:
 - `N`: an integer representing the number of points to generate on the surface \
@@ -229,7 +229,7 @@ return starting from the first generated.
 - `points`: an array of 3D points on the surface of the sphere represented as \
 SVector{3}.
 """
-function _fibonaccisphere_classic_partial(N; spheRadius=1.0, pointsToCheck::Int=50)
+function _fibonaccisphere_classic_partial(N; spheRadius=1.0, pointsToCheck::Int=100)
     points = map(0:min(pointsToCheck, N)-1) do k
         θ, ϕ = _get_theta_phi(k, N)
         sθ, cθ = sincos(θ)
