@@ -28,41 +28,46 @@ using PlotlyExtensionsHelper: PlotlyExtensionsHelper
 using SimpleWeightedGraphs: SimpleWeightedGraphs, SimpleWeightedGraph
 using StaticArrays: StaticArrays, SA_F64, SVector
 using Unitful: °, rad, Quantity, Length, @u_str, ustrip
-using Graphs: reverse
+using Graphs: Graphs, reverse
 
-include("basic_types.jl")
-include("distances.jl")
-include("offset_types.jl")
-include("interface_func.jl")
-include("helper_func.jl")
-include("offsetting_func.jl")
-include("ico_func.jl")
-include("rect_func.jl")
-include("filtering_func.jl")
-include("tessellation_func.jl")
-include("plot_func.jl")
-
+include("basic/basic_types.jl")
 export AbstractRegion, GlobalRegion, GeoRegion, PolyRegion, LatBeltRegion,
-    GeoRegionOffset, PolyRegionOffset,
-    MultiBorder, PolyBorder, BoxBorder,
-    HotSpotRegion, MultiRegion, ClippedRegion,
-    AbstractTiling, ICO, HEX, H3,
-    EO
-    # UnitfulAngleType, UnitfulAngleQuantity, ValidAngle,
+    MultiBorder, PolyBorder, BoxBorder, HotSpotRegion, MultiRegion, 
+    ClippedRegion, AbstractTiling, ICO, HEX, H3, EO
 
+include("basic/offset_types.jl")
+export GeoRegionOffset, PolyRegionOffset
+
+include("misc/distances.jl")
 export LatLonTree, GreatCircleMetric, great_circle_distance
-    
-export icogrid, rectgrid, vecgrid,
-    extract_countries, SKIP_NONCONTINENTAL_EU, filter_points, group_by_domain,
-    gen_hex_lattice, generate_tesselation, _tesselate, gen_circle_pattern, gen_hex_pattern,
-    borders, centroid, in, get_lat, get_lon, latlon_geometry, cartesian_geometry,
-    offset_region
 
-export °, rad, ustrip,
-    LatLon, Cartesian, WGS84Latest, coords, PolyArea, Point,
-    SVector
+include("misc/interface_func.jl")
+export extract_countries, borders, centroid, in, get_lat, get_lon
 
-include("coloring.jl")
+include("basic/offsetting_func.jl")
+export offset_region
+
+include("grids/ico_func.jl")
+export icogrid
+
+include("grids/rect_func.jl")
+export rectgrid, vecgrid
+
+include("grids/filtering_func.jl")
+export filter_points, group_by_domain
+
+include("grids/tessellation_func.jl")
+export gen_hex_lattice, generate_tesselation, gen_circle_pattern, gen_hex_pattern
+
+include("misc/coloring.jl")
 export color_greedy
+
+# Export from other modules
+export °, rad, ustrip, LatLon, Cartesian, WGS84Latest, coords, 
+    PolyArea, Point, SVector, SKIP_NONCONTINENTAL_EU, latlon_geometry, 
+    cartesian_geometry
+
+include("misc/helper_func.jl")
+include("misc/plot_func.jl")
 
 end # module GeoGrids 
