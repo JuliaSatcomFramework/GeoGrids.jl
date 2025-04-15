@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.5.11] - 2025-03-22
+
+### Added
+- made visible to user `maxPrec` and `tol` in `generate_tessellation()` such to allow the creation of cell layouts for cells radius below 3GPP NTN Technical Specification (below 10km radius).
+
 ### Changed
 - Migrated internally to CountriesBorders.jl 0.4.11 and updated the internal functions to use the new/updated functions. 
 
@@ -21,7 +26,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed some issues with Plotting introduced with CountriesBorders.jl 0.4.8 that are now fixed with 0.4.9.
 - Removed some code duplication and overspecified arguments in function signatures for internal code.
 - The internal `gen_circle_pattern` function now returns a number of points which respects the `n` input keyword argument.
-
 
 ## [0.5.8] - 2025-03-20
 

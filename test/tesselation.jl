@@ -218,6 +218,11 @@ end
         @test abs(get_lat(centers[corresponding_idxs[i]]) - samples[i].lat) < 1e-4
         @test abs(get_lon(centers[corresponding_idxs[i]]) - samples[i].lon) < 1e-4
     end
+
+    @test_throws "10000000 points is not sufficient for the requested separation angle" generate_tesselation(GlobalRegion(), 4e3, ICO())
+    
+    centers = generate_tesselation(GlobalRegion(), 4e3, ICO(); maxPrec=10^8)
+    @test length(centers) == 10779808
 end
 
 @testitem "LatBeltRegion ICO Layout Tesselation and :hex Pattern (with EO)" tags = [:tesselation] begin

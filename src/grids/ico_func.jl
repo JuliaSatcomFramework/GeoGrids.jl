@@ -1,19 +1,40 @@
 """
-    icogrid(;N=nothing, sepAng=nothing, unit=:rad, type=:lla) -> Vector{Point{🌐,<:LatLon{WGS84Latest}}}
+    icogrid(; N::Union{Int,Nothing}=nothing, sepAng::Union{ValidAngle,Nothing}=nothing, 
+            maxPrec=10^7, spheRadius=1.0, pointsToCheck::Int=100, tol=10)
 
-This function returns a vector `Nx2` of LAT, LON values for a `N` points grid
-built with the Fibonacci Spiral method.
+Generates a grid of points on the surface of a sphere based on an icosahedral subdivision.
 
-## Arguments:
-- `N`: The number of points to generate.
-- `sepAng`: The separation angle for the grid of points to be generated [rad].
-- `unit`: `:rad` or `:deg`
-- `type`: `:lla` or `:point`. Output type either `LLA` or `Point2`
+# Arguments
+- `N::Union{Int,Nothing}`: The subdivision level of the icosahedron. Higher \
+values result in a finer grid. If provided, `sepAng` must be `nothing`.
+- `sepAng::Union{ValidAngle,Nothing}`: The desired angular separation between \
+points on the grid. Must be a positive angle (in radians or degrees). If \
+provided, `N` must be `nothing`.
+- `maxPrec::Int=10^7`: The maximum allowed number of points for a given \
+`sepAng`. It has to be intended as a precision limit for the point \
+computation, see: [`_points_required_for_separation_angle`](@ref).
+- `spheRadius::Float64=1.0`: The radius of the sphere on which the grid is \
+generated.
+- `pointsToCheck::Int=100`: The number of points to check when calculating the \
+required subdivision level for a given `sepAng`, see: \
+[`_points_required_for_separation_angle`](@ref).
+- `tol::Int=10`: The tolerance level for precision when determining the \
+required subdivision level, see: [`_points_required_for_separation_angle`](@ref).
 
-## Output:
-- `out`: an Vector{Point{🌐,<:LatLon{WGS84Latest}}} of points in the icosahedral grid.
+# Returns
+- A vector of points on the sphere, represented as `LatLon{WGS84Latest}`
+  objects, converted to degrees.
+
+# Notes
+- If both `N` and `sepAng` are provided, an error is raised. Only one of these \
+arguments should be specified.
+- If `sepAng` is negative, it will be converted to a positive value with a \
+warning.
+- The `sepAng` input must satisfy `-360° ≤ x ≤ 360°` if provided as a number. \
+Use `°` or `rad` from the `Unitful` package to specify angles in degrees or \
+radians.
 """
-function icogrid(; N::Union{Int,Nothing}=nothing, sepAng::Union{ValidAngle,Nothing}=nothing)
+function icogrid(; N::Union{Int,Nothing}=nothing, sepAng::Union{ValidAngle,Nothing}=nothing, maxPrec=10^7, spheRadius=1.0, pointsToCheck::Int=100, tol=10)
     if isnothing(sepAng) && !isnothing(N)
         vec = _icogrid(N; coord=:sphe)
     elseif !isnothing(sepAng) && isnothing(N)
@@ -33,7 +54,7 @@ Consider using `°` (or `rad`) from `Unitful` if you want to pass numbers in deg
                 x
             end
         end
-        N, _ = _points_required_for_separation_angle(_sepAng)
+        N, _ = _points_required_for_separation_angle(_sepAng; spheRadius, pointsToCheck, maxPrec, tol)
         vec = _icogrid(N; coord=:sphe)
     else
         error("Input one argument between N and sepAng...")
@@ -89,7 +110,7 @@ function _icogrid(N::Int; coord::Symbol=:sphe, spheRadius=1.0)
 end
 
 """
-    _points_required_for_separation_angle(angle)
+    _points_required_for_separation_angle(angle::ValidAngle; spheRadius=1.0, pointsToCheck::Int=100, maxPrec=10^7, tol=10)
 
 This function computes the minimum number of points required on the surface of a
 sphere to achieve a desired separation angle between any two adjacent points.
@@ -103,15 +124,18 @@ angle.
 - `sepAng`: a float representing the desired separation angle between two \
 adjacent points on the surface of the sphere.
 - `spheRadius`: an optional float representing the radius of the sphere. If not \
-provided, it defaults to 1.0.
+provided, it defaults to 1.0. This value is used to calculate the distance between points \
+on the surface of the sphere. As default, the function assumes a unit sphere.
 - `pointsToCheck`: an optional integer representing the number of points to \
-generate on the surface of the sphere. If not provided, it defaults to 50.
+generate on the surface of the sphere. If not provided, it defaults to 100.
 - `maxPrec`: an optional integer representing the maximum precision for the \
 number of points generated on the surface of the sphere. If not provided, it \
-defaults to 10^7.
+defaults to 10^7. Increasing this value will increase the precision of the result, \
+but will also increase the time.
 - `tol`: an optional integer representing the tolerance for the bisection method \
 used to find the minimum number of points needed to achieve the desired \
-separation angle. If not provided, it defaults to 10.
+separation angle. If not provided, it defaults to 10. Reducing this value \
+will increase the precision of the result but will also increase the time.
 
 ## Output:
 - `Ns[2]`: an integer representing the minimum number of points required on the \
@@ -119,7 +143,7 @@ surface of the sphere to achieve the desired separation angle.
 - `thisSep`: an Uniful.Quantity in degrees representing the separation angle \
 between two adjacent points on the surface of the sphere.
 """
-function _points_required_for_separation_angle(sepAng::ValidAngle; spheRadius=1.0, pointsToCheck::Int=50, maxPrec=10^7, tol=10)
+function _points_required_for_separation_angle(sepAng::ValidAngle; spheRadius=1.0, pointsToCheck::Int=100, maxPrec=10^7, tol=10)
     # Input validation (make it deg)
     _sepAng = sepAng isa Real ? sepAng * ° : sepAng |> u"°" # Convert to Uniful °
     # Bisection
@@ -192,7 +216,7 @@ function _find_min_separation_angle(points)
 end
 
 """
-    _fibonaccisphere_classic_partial(N; spheRadius=1.0, pointsToCheck::Int=50)
+    _fibonaccisphere_classic_partial(N; spheRadius=1.0, pointsToCheck::Int=100)
 
 ## Arguments:
 - `N`: an integer representing the number of points to generate on the surface \
@@ -205,7 +229,7 @@ return starting from the first generated.
 - `points`: an array of 3D points on the surface of the sphere represented as \
 SVector{3}.
 """
-function _fibonaccisphere_classic_partial(N; spheRadius=1.0, pointsToCheck::Int=50)
+function _fibonaccisphere_classic_partial(N; spheRadius=1.0, pointsToCheck::Int=100)
     points = map(0:min(pointsToCheck, N)-1) do k
         θ, ϕ = _get_theta_phi(k, N)
         sθ, cθ = sincos(θ)
