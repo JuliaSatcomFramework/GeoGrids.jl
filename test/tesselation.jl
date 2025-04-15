@@ -219,9 +219,9 @@ end
         @test abs(get_lon(centers[corresponding_idxs[i]]) - samples[i].lon) < 1e-4
     end
 
-    @test_throws "10000000 points is not sufficient for the requested separation angle" generate_tesselation(reg, 4e3, ICO())
+    @test_throws "10000000 points is not sufficient for the requested separation angle" generate_tesselation(GlobalRegion(), 4e3, ICO())
     
-    centers = generate_tesselation(reg, 4e3, ICO(), maxPrec=10^8)
+    centers = generate_tesselation(GlobalRegion(), 4e3, ICO(); maxPrec=10^8)
     @test length(centers) == 10779808
 end
 
