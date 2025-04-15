@@ -1,7 +1,7 @@
 name = "GeoGrids"
 uuid = "22c7c615-cf67-4787-b800-cc81b4f1a63f"
 authors = ["mconti"]
-version = "0.5.10"
+version = "0.5.11"
 
 [deps]
 AngleBetweenVectors = "ec570357-d46e-52ed-9726-18773498274d"
