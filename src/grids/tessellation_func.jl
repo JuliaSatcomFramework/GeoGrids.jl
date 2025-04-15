@@ -208,6 +208,7 @@ function _adapted_icogrid(radius::Number; refRadius=constants.Re_mean, correctio
     # for the hexagonal grid using a correction factor 1.2 to adapt the cell
     # centers distances (from old MATLAB grid). The correction factor would be
     # √3 if the original hex grid approach was used.
+    # Furthermore, using the refRadius we normalize for the unitary sphere.
     sepAng = radius * correctionFactor / refRadius |> rad2deg
 
     return icogrid(; sepAng)
